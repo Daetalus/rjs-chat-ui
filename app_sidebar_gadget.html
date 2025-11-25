@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>App Sidebar Gadget</title>
+
+    <script src="rsvp.js"></script>
+    <script src="renderjs.js"></script>
+    <script src="app_sidebar_gadget.js"></script>
+
+    <!-- Sidebar 颜色 + 结构样式 -->
+    <link rel="stylesheet" href="sidebar.css">
+  </head>
+  <body>
+    <div class="sidebar-root" data-role="sidebar-root" data-state="expanded">
+      <div class="sidebar-inner">
+        <!-- header：保留 -->
+        <div class="sidebar-header">
+          <button
+            type="button"
+            class="sidebar-toggle-btn"
+            data-action="sidebar-toggle"
+            title="Toggle sidebar (Ctrl/Cmd + B)"
+          >
+            ☰
+          </button>
+
+          <div class="sidebar-brand">
+            <div class="sidebar-brand-text">
+              <div class="sidebar-brand-title">Nexedi</div>
+              <div class="sidebar-brand-subtitle">RAG</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session 区域：New Chat + Session 列表 -->
+	<div class="sidebar-session-area">
+	  <button
+	    type="button"
+	    class="sidebar-newchat-btn"
+	    data-action="new-chat"
+	  >
+	    <span class="sidebar-newchat-btn-icon">＋</span>
+	    <span class="sidebar-newchat-btn-text">New Chat</span>
+	  </button>
+
+	  <div class="sidebar-session-list" data-role="session-list">
+	    <!-- JS 渲染 session -->
+	  </div>
+	</div>
+
+      </div>
+
+      <!-- 移动端遮罩 -->
+      <div
+        class="sidebar-backdrop"
+        data-role="sidebar-backdrop"
+        data-action="sidebar-backdrop"
+      ></div>
+    </div>
+

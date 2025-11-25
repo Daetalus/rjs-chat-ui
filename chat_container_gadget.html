@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Chat Container Gadget</title>
+
+    <!-- 每个 gadget 自己带上依赖 -->
+    <script src="rsvp.js"></script>
+    <script src="renderjs.js"></script>
+    <script src="chat_container_gadget.js"></script>
+
+
+
+  </head>
+  <body>
+    <style>
+        .chat-root {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          background: #f3f4f6;
+        }
+
+      .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 8px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+      }
+
+      .chat-header button {
+        border-radius: 9999px;
+        border: 1px solid #d1d5db;
+        padding: 4px 14px;
+        font-size: 13px;
+        background: #ffffff;
+        cursor: pointer;
+        line-height: 1.4;
+      }
+
+      .chat-header button:hover:not(:disabled) {
+        background: #f3f4f6;
+      }
+
+      .chat-header button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+    .chat-log {
+      padding: 16px 0;
+      box-sizing: border-box;
+    }
+
+      /* 中间收窄的内容列，类似常见聊天页面 */
+      .chat-log-inner {
+        max-width: 768px;
+        margin: 0 auto;
+        padding: 0 16px;
+        box-sizing: border-box;
+      }
+
+      .message-row {
+        display: flex;
+        margin-bottom: 12px;
+      }
+
+      .message-row--assistant {
+        justify-content: flex-start;
+      }
+
+      .message-row--user {
+        justify-content: flex-end;
+      }
+
+      .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 9999px;
+        background: #111827;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        margin-right: 8px;
+        flex-shrink: 0;
+      }
+
+      .message-content-wrapper {
+        max-width: 80%;
+      }
+
+      .message-bubble {
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 16px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid transparent;
+      }
+
+      /* assistant：白底 + 细边框，更像“系统输出” */
+      .message-bubble--assistant {
+        background: #ffffff;
+        color: #111827;
+        border-color: #e5e7eb;
+        border-bottom-left-radius: 4px;
+      }
+
+      /* user：浅灰背景，右对齐 */
+      .message-bubble--user {
+        background: #e5e7eb;
+        color: #111827;
+        border-color: #e5e7eb;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* 让 user 行尾稍微离右边有点 margin，视觉更舒服 */
+      .message-row--user .message-content-wrapper {
+        margin-right: 4px;
+      }
+
+      .message-row--assistant .message-content-wrapper {
+        margin-left: 4px;
+      }
+    </style>
+    <div class="chat-root">
+      <div class="chat-log">
+        <div class="chat-log-inner" data-role="log-inner"></div>
+      </div>
+    </div>
+  </body>
+
+</html>
+

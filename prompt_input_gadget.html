@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Prompt Input Gadget</title>
+
+    <script src="rsvp.js"></script>
+    <script src="renderjs.js"></script>
+    <script src="prompt_input_gadget.js"></script>
+  </head>
+  <body>
+    <style>
+      .prompt-root {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px 16px;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+      }
+
+      .prompt-shell {
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        padding: 8px 12px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        cursor: text;
+
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .prompt-shell--disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .prompt-files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .prompt-file-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 9999px;
+        background: #e5e7eb;
+        cursor: default;
+      }
+
+      .prompt-file-chip-name {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .prompt-file-chip-remove {
+        border: none;
+        padding: 0;
+        background: transparent;
+        cursor: pointer;
+        line-height: 1;
+        font-size: 12px;
+      }
+
+      .prompt-main-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+      }
+
+      .prompt-textarea-wrapper {
+        flex: 1;
+      }
+
+      .prompt-textarea {
+        width: 100%;
+        min-height: 44px;
+        max-height: 180px;
+        resize: none;
+        border: none;
+        outline: none;
+        padding: 0;
+        margin: 0;
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.5;
+        background: transparent;
+      }
+
+      .prompt-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .prompt-icon-button {
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        border: none;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .prompt-icon-button:hover {
+        background: rgba(15, 23, 42, 0.06);
+      }
+
+      .prompt-icon-button--primary {
+        background: #111827;
+        color: #ffffff;
+      }
+
+      .prompt-icon-button--primary:hover {
+        background: #020617;
+      }
+
+      .prompt-icon {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      /* 简单 tooltip：hover 时在上方显示一条文字 */
+      .prompt-tooltip-wrapper {
+        position: relative;
+      }
+
+      .prompt-tooltip-wrapper[data-tooltip]:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 50%;
+        bottom: 100%;
+        transform: translateX(-50%);
+        margin-bottom: 6px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        background: #111827;
+        color: #ffffff;
+        font-size: 11px;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      /* 让整个输入组件最大宽度适配卡片内布局 */
+      .prompt-inner {
+        max-width: 768px;
+        margin: 0 auto;
+      }
+    </style>
+
+    <div class="prompt-root">
+      <div class="prompt-inner">
+        <div class="prompt-shell" data-role="shell">
+          <div class="prompt-files" data-role="files"></div>
+
+          <div class="prompt-main-row">
+            <div class="prompt-textarea-wrapper">
+              <textarea
+                class="prompt-textarea"
+                data-role="textarea"
+                placeholder="Ask me anything..."
+                rows="1"
+              ></textarea>
+            </div>
+
+            <div class="prompt-actions">
+              <!-- Attach files -->
+              <div
+                class="prompt-tooltip-wrapper"
+                data-tooltip="Attach files"
+              >
+                <button
+                  type="button"
+                  class="prompt-icon-button"
+                  data-action="attach"
+                >
+                  <span class="prompt-icon">📎</span>
+                </button>
+              </div>
+
+              <!-- Hidden file input -->
+              <input
+                type="file"
+                multiple
+                data-role="file-input"
+                style="display: none;"
+              />
+
+              <!-- Send / Stop -->
+              <div
+                class="prompt-tooltip-wrapper"
+                data-tooltip="Send message"
+                data-role="send-tooltip"
+              >
+                <button
+                  type="button"
+                  class="prompt-icon-button prompt-icon-button--primary"
+                  data-action="submit"
+                >
+                  <span class="prompt-icon" data-role="send-icon">↑</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

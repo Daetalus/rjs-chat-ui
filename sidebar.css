@@ -1,0 +1,369 @@
+@layer base {
+  :root {
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+
+  .dark {
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.439 0 0);
+  }
+}
+
+/* ------------ App Sidebar layout & sessions ------------ */
+
+:root {
+  --app-sidebar-width: 16rem;      /* expanded */
+  --app-sidebar-width-icon: 3rem;  /* collapsed */
+}
+
+/* 根容器：左侧栏 */
+.sidebar-root {
+  position: relative;
+  z-index: 20;
+
+  width: var(--app-sidebar-width);
+  height: 100vh;          /* 用 height 而不是 min-height */
+
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--sidebar-border);
+
+  transition: width 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.sidebar-root.sidebar-root--collapsed {
+  width: var(--app-sidebar-width-icon);
+}
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Header */
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+}
+
+.sidebar-toggle-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: none;
+  margin-right: 4px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  background: transparent;
+  color: var(--sidebar-foreground);
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+/* 品牌块 */
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-brand-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sidebar-brand-subtitle {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 1);
+}
+
+/* -------- collapsed 状态的定制行为 -------- */
+
+/* 折叠时隐藏品牌块，只剩按钮；按钮居中 */
+.sidebar-root.sidebar-root--collapsed .sidebar-brand {
+  display: none !important;
+}
+
+.sidebar-root.sidebar-root--collapsed .sidebar-header {
+  justify-content: center;
+}
+
+/* 折叠时只保留一个 New Session 图标按钮，不显示 session 列表 */
+.sidebar-root.sidebar-root--collapsed .sidebar-session-list {
+  display: none !important;
+}
+
+/* 让 session 区域内内容居中，方便图标按钮居中显示 */
+.sidebar-root.sidebar-root--collapsed .sidebar-session-area {
+  align-items: center;
+}
+
+/* New Session 压成圆形 icon 按钮 */
+.sidebar-root.sidebar-root--collapsed .sidebar-newchat-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 9999px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 折叠时隐藏 New Session 的文字，只留图标 */
+.sidebar-root.sidebar-root--collapsed .sidebar-newchat-btn-text {
+  display: none !important;
+}
+
+/* 展开状态下的 Session 区域：占满剩余高度，并在内部滚动 */
+
+.sidebar-session-area {
+  flex: 1 1 auto;      /* 在 column 布局中占满 header 下面所有剩余高度 */
+  min-height: 0;       /* 关键：允许高度被压缩，否则 overflow 不会触发 */
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  overflow-y: auto;    /* session 多的时候，这里会出现垂直滚动条 */
+  overflow-x: hidden;
+}
+
+/* New Chat 按钮（展开状态） */
+
+.sidebar-newchat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--sidebar-border);
+
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  cursor: pointer;
+
+  transition: background-color 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.sidebar-newchat-btn:hover {
+  background: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+  border-color: var(--sidebar-primary);
+}
+
+.sidebar-newchat-btn-icon {
+  font-size: 12px;
+}
+
+.sidebar-newchat-btn-text {
+  white-space: nowrap;
+}
+
+/* Sessions 列表（展开状态） */
+
+.sidebar-session-list {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-session-item {
+  position: relative;
+  border-radius: 8px;
+}
+
+/* 主按钮：选中 session */
+.sidebar-session-button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 左标题 + 右三点 */
+  gap: 4px;
+
+  padding: 6px 8px;
+  border-radius: 8px;
+
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--sidebar-foreground);
+
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-session-button:hover {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+.sidebar-session-button[data-active="true"] {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  font-weight: 500;
+}
+
+/* 左侧主内容：只有 title */
+
+.sidebar-session-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sidebar-session-title {
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 三点按钮：和标题在同一行 */
+
+.sidebar-session-more-btn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 14px;
+  color: rgba(148, 163, 184, 1);
+}
+
+.sidebar-session-more-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+/* Popup 菜单 */
+
+.sidebar-session-menu {
+  position: absolute;
+  right: 4px;
+  top: 100%;
+  margin-top: 4px;
+
+  min-width: 120px;
+  padding: 4px 0;
+  border-radius: 8px;
+
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border: 1px solid var(--sidebar-border);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+
+  font-size: 12px;
+  display: none;
+  z-index: 30;
+}
+
+.sidebar-session-item.sidebar-session-item--menu-open
+  > .sidebar-session-menu {
+  display: block;
+}
+
+.sidebar-session-menu-item {
+  width: 100%;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.sidebar-session-menu-item:hover {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+/* 移动端：抽屉 + 背景 */
+
+@media (max-width: 768px) {
+  .sidebar-root {
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    width: var(--app-sidebar-width);
+  }
+
+  .sidebar-root.sidebar-root--mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  .sidebar-root.sidebar-root--mobile-open + .sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-backdrop {
+    display: none;
+  }
+}

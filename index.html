@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>RenderJS Chat + Sidebar Demo</title>
+
+    <!-- 让移动端按设备宽度渲染 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Core dependencies -->
+    <script src="rsvp.js"></script>
+    <script src="renderjs.js"></script>
+
+    <!-- Root gadget logic：负责 Chat / Prompt 的联动 -->
+    <script src="index_gadget.js"></script>
+
+    <!-- 颜色变量（sidebar.css） -->
+    <link rel="stylesheet" href="sidebar.css">
+
+    <style>
+      html,
+      body {
+        height: 100%;
+        font-size: 12px;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+          Arial, sans-serif;
+        background: #f3f4f6;
+
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* 滚动交给内部容器 */
+      }
+
+      /* 顶层横向结构：左 Sidebar + 右主内容 */
+      .app-shell {
+        flex: 1;
+        min-height: 0;
+
+        display: flex;
+        flex-direction: row;
+      }
+
+      /* 左侧 sidebar 容器（宽度由 sidebar gadget 内部控制） */
+      [data-gadget-scope="sidebar"] {
+        flex: 0 0 auto;
+        /* 不设置宽度，由 sidebar 内部 .sidebar-root 决定 */
+      }
+
+      /* 右侧主内容区域 */
+      .app-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 整个聊天布局（上方滚动 chat，下方固定 prompt） */
+      .chat-layout {
+        flex: 1;
+        min-height: 0;
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 上方滚动区域：滚动条在最右边 */
+      .chat-scroll {
+        flex: 1;
+        min-height: 0;
+
+        width: 100%;
+        overflow-y: auto;
+        background: #f3f4f6;
+      }
+
+      /* 下方 Prompt 条：固定在底部 */
+      .prompt-bar {
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+      }
+
+      /* 中间一栏：居中，左右空白 */
+      .page-center {
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        min-height: 0;
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 右侧的 chat gadget 容器 */
+      [data-gadget-scope="chat"] {
+        /* 在 page-center 内自然占满宽度即可 */
+      }
+
+      /* 右侧 prompt gadget 容器 */
+      [data-gadget-scope="prompt"] {
+        /* 样式主要在 prompt_input_gadget.html 内 */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- 左侧 AppSidebar gadget -->
+      <div
+        data-gadget-url="app_sidebar_gadget.html"
+        data-gadget-scope="sidebar"
+        data-gadget-sandbox="public"
+      ></div>
+
+      <!-- 右侧主内容：Chat + Prompt -->
+      <div class="app-main">
+        <div class="chat-layout">
+          <!-- 上方滚动区域：Chat Container -->
+          <div class="chat-scroll">
+            <div class="page-center">
+              <div
+                data-gadget-url="chat_container_gadget.html"
+                data-gadget-scope="chat"
+                data-gadget-sandbox="public"
+              ></div>
+            </div>
+          </div>
+
+          <!-- 下方固定 Prompt Input -->
+          <div class="prompt-bar">
+            <div class="page-center">
+              <div
+                data-gadget-url="prompt_input_gadget.html"
+                data-gadget-scope="prompt"
+                data-gadget-sandbox="public"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>Please enable JavaScript.</noscript>
+  </body>
+</html>
+
