@@ -105,7 +105,7 @@
       gadget.placeholder_text =
         "This is a placeholder streamed reply from the AI. " +
         "Replace this with real model output later.";
-
+      gadget.is_dark_mode = false;
       renderMessages(gadget);
     })
 
@@ -229,6 +229,19 @@
           updateStreamingButton(gadget);
         }
       }, 30);
+    })
+
+    .declareMethod("setTheme", function (is_dark) {
+      var root = document.documentElement;
+      this.is_dark_mode = Boolean(is_dark);
+      if (!root) {
+        return;
+      }
+      if (this.is_dark_mode) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
     })
 
     .onEvent(

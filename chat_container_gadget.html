@@ -14,47 +14,56 @@
   </head>
   <body>
     <style>
-        .chat-root {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          background: #f3f4f6;
-        }
+      :root {
+        color-scheme: light;
+        --chat-bg: #f3f4f6;
+        --chat-panel: #ffffff;
+        --chat-border: #e5e7eb;
+        --chat-text: #0f172a;
+        --chat-accent: rgba(15, 23, 42, 0.04);
+        --chat-user-bg: #e5e7eb;
+        --chat-user-text: #111827;
+        --chat-assistant-bg: #ffffff;
+        --chat-assistant-text: #111827;
+        --chat-avatar-bg: #111827;
+        --chat-avatar-text: #ffffff;
+      }
 
-      .chat-header {
+      :root.dark {
+        color-scheme: dark;
+        --chat-bg: #0b1220;
+        --chat-panel: #111827;
+        --chat-border: rgba(255, 255, 255, 0.08);
+        --chat-text: #f8fafc;
+        --chat-accent: rgba(248, 250, 252, 0.08);
+        --chat-user-bg: #1f2738;
+        --chat-user-text: #f8fafc;
+        --chat-assistant-bg: rgba(15, 23, 42, 0.85);
+        --chat-assistant-text: #f8fafc;
+        --chat-avatar-bg: #f8fafc;
+        --chat-avatar-text: #0f172a;
+      }
+
+      body {
+        margin: 0;
+        background: var(--chat-bg);
+        color: var(--chat-text);
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      .chat-root {
         display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        padding: 8px 16px;
-        border-bottom: 1px solid #e5e7eb;
-        background: #f9fafb;
+        flex-direction: column;
+        width: 100%;
+        min-height: 100%;
       }
 
-      .chat-header button {
-        border-radius: 9999px;
-        border: 1px solid #d1d5db;
-        padding: 4px 14px;
-        font-size: 13px;
-        background: #ffffff;
-        cursor: pointer;
-        line-height: 1.4;
+      .chat-log {
+        padding: 16px 0;
+        box-sizing: border-box;
       }
 
-      .chat-header button:hover:not(:disabled) {
-        background: #f3f4f6;
-      }
-
-      .chat-header button:disabled {
-        opacity: 0.6;
-        cursor: default;
-      }
-
-    .chat-log {
-      padding: 16px 0;
-      box-sizing: border-box;
-    }
-
-      /* 中间收窄的内容列，类似常见聊天页面 */
       .chat-log-inner {
         max-width: 768px;
         margin: 0 auto;
@@ -79,8 +88,8 @@
         width: 32px;
         height: 32px;
         border-radius: 9999px;
-        background: #111827;
-        color: #ffffff;
+        background: var(--chat-avatar-bg);
+        color: var(--chat-avatar-text);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -103,23 +112,20 @@
         border: 1px solid transparent;
       }
 
-      /* assistant：白底 + 细边框，更像“系统输出” */
       .message-bubble--assistant {
-        background: #ffffff;
-        color: #111827;
-        border-color: #e5e7eb;
+        background: var(--chat-assistant-bg);
+        color: var(--chat-assistant-text);
+        border-color: var(--chat-border);
         border-bottom-left-radius: 4px;
       }
 
-      /* user：浅灰背景，右对齐 */
       .message-bubble--user {
-        background: #e5e7eb;
-        color: #111827;
-        border-color: #e5e7eb;
+        background: var(--chat-user-bg);
+        color: var(--chat-user-text);
+        border-color: var(--chat-user-bg);
         border-bottom-right-radius: 4px;
       }
 
-      /* 让 user 行尾稍微离右边有点 margin，视觉更舒服 */
       .message-row--user .message-content-wrapper {
         margin-right: 4px;
       }
@@ -136,4 +142,3 @@
   </body>
 
 </html>
-
