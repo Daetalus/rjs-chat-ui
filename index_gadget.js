@@ -55,6 +55,26 @@
     }
   }
 
+  function applyDocumentTheme(is_dark) {
+    var root = window.document && window.document.documentElement,
+      body = window.document && window.document.body;
+
+    if (root) {
+      if (is_dark) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    }
+    if (body) {
+      if (is_dark) {
+        body.classList.add("dark");
+      } else {
+        body.classList.remove("dark");
+      }
+    }
+  }
+
   rJS(window)
     .ready(function (gadget) {
       gadget.session_message_dict = {};
@@ -159,6 +179,16 @@
       }
 
       // 1. First get the three sub gadgets: sidebar / chat / prompt
+      function handleThemeChange(is_dark) {
+        applyDocumentTheme(is_dark);
+        if (gadget.chat_gadget && gadget.chat_gadget.setTheme) {
+          gadget.chat_gadget.setTheme(is_dark);
+        }
+        if (gadget.prompt_gadget && gadget.prompt_gadget.setTheme) {
+          gadget.prompt_gadget.setTheme(is_dark);
+        }
+      }
+
       return gadget.getDeclaredGadget("sidebar")
         .push(function (sg) {
           sidebar_gadget = sg;
@@ -185,6 +215,10 @@
           // Sidebar → Root: callback when active session changes
           if (sidebar_gadget.setSessionChangeHandler) {
             sidebar_gadget.setSessionChangeHandler(handleSidebarActiveChange);
+          }
+
+          if (sidebar_gadget.setThemeChangeHandler) {
+            sidebar_gadget.setThemeChangeHandler(handleThemeChange);
           }
 
           // setSessionChangeHandler internally calls notifySessionChange once immediately,
