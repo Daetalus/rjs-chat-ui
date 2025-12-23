@@ -7,55 +7,647 @@
     <script src="rsvp.js"></script>
     <script src="renderjs.js"></script>
     <script src="app_sidebar_gadget.js"></script>
-
-    <!-- Sidebar 颜色 + 结构样式 -->
-    <link rel="stylesheet" href="sidebar.css">
   </head>
   <body>
-    <div class="sidebar-root" data-role="sidebar-root" data-state="expanded">
-      <div class="sidebar-inner">
-        <!-- header：保留 -->
-        <div class="sidebar-header">
-          <button
-            type="button"
-            class="sidebar-toggle-btn"
-            data-action="sidebar-toggle"
-            title="Toggle sidebar (Ctrl/Cmd + B)"
-          >
-            ☰
-          </button>
+    <style>
+      :root {
+        color-scheme: light;
+        --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        --sidebar-border: rgba(15, 23, 42, 0.08);
+        --sidebar-muted: rgba(71, 85, 105, 0.85);
+        --sidebar-foreground: #0f172a;
+        --sidebar-accent: #f1f5f9;
+        --sidebar-accent-strong: #e2e8f0;
+        --sidebar-primary: #111827;
+        --sidebar-radius: 20px;
+        --sidebar-card: #ffffff;
+        --sidebar-card-muted: rgba(15, 23, 42, 0.04);
+      }
 
-          <div class="sidebar-brand">
-            <div class="sidebar-brand-text">
-              <div class="sidebar-brand-title">Nexedi</div>
-              <div class="sidebar-brand-subtitle">RAG</div>
+      :root.dark {
+        color-scheme: dark;
+        --sidebar-bg: linear-gradient(180deg, #0b1120 0%, #111827 100%);
+        --sidebar-border: rgba(248, 250, 252, 0.15);
+        --sidebar-muted: rgba(226, 232, 240, 0.75);
+        --sidebar-foreground: #f8fafc;
+        --sidebar-accent: rgba(255, 255, 255, 0.08);
+        --sidebar-accent-strong: rgba(255, 255, 255, 0.22);
+        --sidebar-primary: #ffffff;
+        --sidebar-card: rgba(255, 255, 255, 0.05);
+        --sidebar-card-muted: rgba(255, 255, 255, 0.12);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", "SF Pro Display", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--sidebar-foreground);
+        background: var(--sidebar-bg);
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .dark body {
+        background: var(--sidebar-bg);
+        color: var(--sidebar-foreground);
+      }
+
+      .sidebar-root {
+        position: relative;
+        width: 314px;
+        height: 100vh;
+        background: var(--sidebar-bg);
+        border-right: 1px solid var(--sidebar-border);
+        display: flex;
+        flex-direction: column;
+        transition: width 0.25s ease, transform 0.25s ease;
+        overflow: hidden;
+      }
+
+      .sidebar-root[data-state="collapsed"] {
+        width: 157px;
+      }
+
+      .sidebar-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 18px 16px;
+        gap: 16px;
+        height: 100%;
+      }
+
+      .sidebar-scroll {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+        flex-shrink: 0;
+      }
+
+      .sidebar-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .sidebar-brand {
+        display: flex;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .sidebar-brand-title {
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+
+      .sidebar-brand-subtitle {
+        font-size: 14px;
+        color: var(--sidebar-muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .sidebar-trigger {
+        width: 36px;
+        height: 36px;
+        border-radius: 9999px;
+        border: 1px solid var(--sidebar-border);
+        background: var(--sidebar-card-muted);
+        color: var(--sidebar-foreground);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+        margin-left: auto;
+      }
+
+      .sidebar-trigger:hover {
+        background: var(--sidebar-accent);
+      }
+
+      .sidebar-trigger svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .sidebar-newchat {
+        width: 100%;
+        border: none;
+        background: var(--sidebar-card);
+        padding: 12px 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        font-size: 15px;
+      }
+
+      .sidebar-newchat:hover {
+        background: var(--sidebar-accent);
+      }
+
+      .sidebar-newchat-icon {
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sidebar-primary);
+      }
+
+      .sidebar-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .sidebar-section-label {
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--sidebar-muted);
+      }
+
+      .sidebar-state-message {
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 13px;
+        line-height: 1.5;
+        display: none;
+      }
+
+      .sidebar-state-message[data-state="error"][data-visible="true"] {
+        display: block;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        background: rgba(239, 68, 68, 0.08);
+        color: #b91c1c;
+      }
+
+      .sidebar-state-message[data-state="empty"][data-visible="true"] {
+        display: block;
+        border: 1px dashed var(--sidebar-border);
+        background: rgba(248, 250, 252, 0.8);
+        color: var(--sidebar-muted);
+      }
+
+      .sidebar-skeletons {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .sidebar-skeletons[data-active="true"] {
+        display: flex;
+      }
+
+      .sidebar-skeleton {
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(
+          90deg,
+          rgba(226, 232, 240, 0.8),
+          rgba(237, 242, 247, 0.8),
+          rgba(226, 232, 240, 0.8)
+        );
+        background-size: 200% 100%;
+        animation: sidebar-shimmer 1.2s ease-in-out infinite;
+      }
+
+      @keyframes sidebar-shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .sidebar-session-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        padding-right: 4px;
+        gap: 24px;
+      }
+
+      .sidebar-session-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .sidebar-session-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .sidebar-session-scroll::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.5);
+        border-radius: 4px;
+      }
+
+      .sidebar-session-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .sidebar-session-list[data-hidden="true"] {
+        display: none;
+      }
+
+      .sidebar-session-item {
+        position: relative;
+      }
+
+      .sidebar-session-button {
+        width: 100%;
+        border: none;
+        background: var(--sidebar-card);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 42px 12px 14px;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease,
+          background 0.15s ease;
+        color: var(--sidebar-foreground);
+      }
+
+      .sidebar-session-button[data-active="true"] {
+        background: var(--sidebar-accent);
+        border-color: var(--sidebar-accent-strong);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+      }
+
+      .sidebar-session-title {
+        display: block;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 1.2rem;
+        font-weight: 500;
+      }
+
+      .sidebar-session-actions {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      .sidebar-session-more-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        border: none;
+        background: transparent;
+        color: var(--sidebar-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .sidebar-session-more-btn:hover {
+        background: var(--sidebar-accent);
+        color: var(--sidebar-foreground);
+      }
+
+      .sidebar-session-menu {
+        position: absolute;
+        right: 6px;
+        top: calc(100% + 6px);
+        min-width: 160px;
+        border-radius: 12px;
+        border: 1px solid var(--sidebar-border);
+        background: var(--sidebar-card);
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.15);
+        padding: 4px;
+        display: none;
+        z-index: 20;
+      }
+
+      .sidebar-session-menu[data-open="true"] {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-session-menu button {
+        border: none;
+        background: transparent;
+        border-radius: 10px;
+        padding: 8px 10px;
+        text-align: left;
+        font-size: 14px;
+        color: var(--sidebar-foreground);
+        cursor: pointer;
+      }
+
+      .sidebar-session-menu button:hover {
+        background: var(--sidebar-accent);
+      }
+
+      .sidebar-session-menu button[data-variant="danger"] {
+        color: #b91c1c;
+      }
+
+      .sidebar-footer {
+        border-top: 1px solid rgba(15, 23, 42, 0.05);
+        padding-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+
+      .sidebar-theme-card {
+        border-radius: 16px;
+        background: var(--sidebar-card-muted);
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .sidebar-theme-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .sidebar-theme-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .sidebar-theme-subtitle {
+        font-size: 12px;
+        color: var(--sidebar-muted);
+      }
+
+      .sidebar-switch {
+        width: 48px;
+        height: 26px;
+        border-radius: 9999px;
+        border: 1px solid transparent;
+        padding: 3px;
+        background: #e2e8f0;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .sidebar-switch[data-checked="true"] {
+        background: #111827;
+      }
+
+      .sidebar-switch-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        transition: transform 0.2s ease;
+        transform: translateX(0);
+      }
+
+      .sidebar-switch[data-checked="true"] .sidebar-switch-thumb {
+        transform: translateX(20px);
+      }
+
+      .sidebar-signout {
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: left;
+        color: rgba(239, 68, 68, 0.9);
+        cursor: pointer;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .sidebar-signout:hover {
+        background: var(--sidebar-accent);
+      }
+
+      .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 10;
+      }
+
+      .sidebar-root.sidebar-root--mobile-open .sidebar-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .sidebar-root.sidebar-root--mobile {
+        position: fixed;
+        inset: 0 auto 0 0;
+        transform: translateX(-100%);
+        z-index: 30;
+      }
+
+      .sidebar-root.sidebar-root--mobile.sidebar-root--mobile-open {
+        transform: translateX(0);
+        box-shadow: 20px 0 60px rgba(15, 23, 42, 0.35);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-brand-subtitle,
+      .sidebar-root[data-state="collapsed"] .sidebar-brand-title,
+      .sidebar-root[data-state="collapsed"] .sidebar-section-label,
+      .sidebar-root[data-state="collapsed"] .sidebar-state-message,
+      .sidebar-root[data-state="collapsed"] .sidebar-theme-card,
+      .sidebar-root[data-state="collapsed"] .sidebar-signout {
+        display: none !important;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-panel {
+        padding: 20px 12px;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-newchat span:nth-of-type(2) {
+        display: none;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-newchat {
+        padding: 12px;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-session-button {
+        padding: 12px;
+        justify-content: center;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-session-title {
+        display: none;
+      }
+
+      @media (max-width: 1024px) {
+        .sidebar-root {
+          position: fixed;
+          inset: 0 auto 0 0;
+          transform: translateX(-100%);
+          z-index: 30;
+        }
+
+        .sidebar-root.sidebar-root--mobile-open {
+          transform: translateX(0);
+        }
+      }
+    </style>
+
+    <div class="sidebar-root" data-role="sidebar-root" data-state="expanded">
+      <div class="sidebar-panel">
+        <div class="sidebar-scroll">
+          <header class="sidebar-header">
+            <div class="sidebar-header-top">
+              <div class="sidebar-brand">
+                <span class="sidebar-brand-subtitle">Nexedi</span>
+                <span class="sidebar-brand-title">RAG Assistant</span>
+              </div>
+              <button
+                type="button"
+                class="sidebar-trigger"
+                data-action="sidebar-toggle"
+              >
+                <span class="sr-only">Toggle sidebar (Ctrl/Cmd + B)</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 6h16" />
+                  <path d="M4 12h16" />
+                  <path d="M4 18h16" />
+                </svg>
+              </button>
             </div>
+            <button type="button" class="sidebar-newchat" data-action="new-chat">
+              <span class="sidebar-newchat-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </span>
+              <span>New chat</span>
+            </button>
+          </header>
+
+          <div class="sidebar-session-scroll">
+            <section class="sidebar-section">
+              <div class="sidebar-section-label">Recent chats</div>
+              <div
+                class="sidebar-state-message"
+                data-role="sessions-error"
+                data-state="error"
+                data-visible="false"
+              ></div>
+              <div
+                class="sidebar-state-message"
+                data-role="sessions-empty"
+                data-state="empty"
+                data-visible="false"
+              >
+                Your upcoming chats will appear here.
+              </div>
+              <div class="sidebar-skeletons" data-role="sessions-loading">
+                <div class="sidebar-skeleton"></div>
+                <div class="sidebar-skeleton"></div>
+                <div class="sidebar-skeleton"></div>
+              </div>
+              <div class="sidebar-session-list" data-role="session-list"></div>
+            </section>
           </div>
         </div>
 
-        <!-- Session 区域：New Chat + Session 列表 -->
-	<div class="sidebar-session-area">
-	  <button
-	    type="button"
-	    class="sidebar-newchat-btn"
-	    data-action="new-chat"
-	  >
-	    <span class="sidebar-newchat-btn-icon">＋</span>
-	    <span class="sidebar-newchat-btn-text">New Chat</span>
-	  </button>
-
-	  <div class="sidebar-session-list" data-role="session-list">
-	    <!-- JS 渲染 session -->
-	  </div>
-	</div>
-
+        <footer class="sidebar-footer">
+          <div class="sidebar-theme-card">
+            <div class="sidebar-theme-text">
+              <span class="sidebar-theme-title">Theme</span>
+              <span class="sidebar-theme-subtitle">Toggle light/dark</span>
+            </div>
+            <button
+              type="button"
+              class="sidebar-switch"
+              data-role="theme-switch"
+              data-action="toggle-theme"
+              role="switch"
+              aria-checked="false"
+            >
+              <span class="sidebar-switch-thumb"></span>
+              <span class="sr-only">Toggle theme</span>
+            </button>
+          </div>
+          <button type="button" class="sidebar-signout" data-action="sign-out">
+            <span aria-hidden="true">↩︎</span>
+            Sign out
+          </button>
+        </footer>
       </div>
 
-      <!-- 移动端遮罩 -->
       <div
         class="sidebar-backdrop"
         data-role="sidebar-backdrop"
         data-action="sidebar-backdrop"
       ></div>
     </div>
-
+  </body>
+</html>
