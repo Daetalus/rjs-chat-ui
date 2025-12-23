@@ -10,207 +10,404 @@
   </head>
   <body>
     <style>
-      .prompt-root {
+      :root {
+        color-scheme: light;
+        --prompt-background: radial-gradient(
+            circle at top,
+            rgba(255, 255, 255, 0.8),
+            transparent 70%
+          ),
+          rgba(249, 250, 251, 0.9);
+        --prompt-surface: rgba(255, 255, 255, 0.95);
+        --prompt-surface-muted: rgba(15, 23, 42, 0.04);
+        --prompt-border: rgba(15, 23, 42, 0.12);
+        --prompt-border-strong: rgba(15, 23, 42, 0.4);
+        --prompt-muted: #6b7280;
+        --prompt-primary: #111827;
+        --prompt-button-primary: #111827;
+        --prompt-button-primary-hover: #0b1220;
+        --prompt-button-primary-text: #ffffff;
+      }
+
+      :root.dark {
+        color-scheme: dark;
+        --prompt-background: radial-gradient(
+            circle at top,
+            rgba(15, 23, 42, 0.85),
+            transparent 70%
+          ),
+          #0b1220;
+        --prompt-surface: rgba(15, 23, 42, 0.92);
+        --prompt-surface-muted: rgba(255, 255, 255, 0.08);
+        --prompt-border: rgba(248, 250, 252, 0.16);
+        --prompt-border-strong: rgba(248, 250, 252, 0.4);
+        --prompt-muted: rgba(203, 213, 225, 0.8);
+        --prompt-primary: #f8fafc;
+        --prompt-button-primary: #f8fafc;
+        --prompt-button-primary-hover: #ffffff;
+        --prompt-button-primary-text: #0f172a;
+      }
+
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", "SF Pro Display", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--prompt-primary);
+        background: var(--prompt-background);
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: none;
+        background: none;
+        padding: 0;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+      }
+
+      .prompt-root {
         width: 100%;
-        padding: 12px 16px;
-        border-top: 1px solid #e5e7eb;
-        background: #f9fafb;
+        padding: 10px 0 18px;
+        backdrop-filter: blur(8px);
+      }
+
+      .prompt-inner {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 12px;
       }
 
       .prompt-shell {
-        border-radius: 10px;
-        border: 1px solid #d1d5db;
-        background: #ffffff;
-        padding: 8px 12px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-        cursor: text;
-
+        border-radius: 28px;
+        border: 1px solid var(--prompt-border);
+        background: var(--prompt-surface);
+        box-shadow: 0 20px 55px rgba(15, 23, 42, 0.12);
+        padding: 18px 20px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 16px;
+        cursor: text;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease,
+          transform 0.2s ease;
       }
 
-      .prompt-shell--disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
+      .prompt-shell:focus-within {
+        border-color: var(--prompt-border-strong);
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+      }
+
+      .prompt-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .prompt-textarea-wrapper {
+        position: relative;
+      }
+
+      .prompt-textarea {
+        width: 100%;
+        min-height: 48px;
+        max-height: 240px;
+        border: none;
+        outline: none;
+        resize: none;
+        padding: 0;
+        background: transparent;
+        color: var(--prompt-primary);
+        font-size: 1.2rem;
+        line-height: 1.6;
+        caret-color: var(--prompt-primary);
+      }
+
+      .prompt-textarea::placeholder {
+        color: var(--prompt-muted);
+        opacity: 1;
       }
 
       .prompt-files {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
+      }
+
+      .prompt-files:empty {
+        display: none;
       }
 
       .prompt-file-chip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-size: 12px;
-        padding: 4px 8px;
+        padding: 6px 12px;
         border-radius: 9999px;
-        background: #e5e7eb;
-        cursor: default;
+        border: 1px solid var(--prompt-border);
+        background: var(--prompt-surface-muted);
+        font-size: 13px;
+        color: var(--prompt-primary);
       }
 
       .prompt-file-chip-name {
-        max-width: 140px;
+        max-width: 180px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
+      .prompt-file-chip-size {
+        font-size: 12px;
+        color: var(--prompt-muted);
+      }
+
       .prompt-file-chip-remove {
         border: none;
-        padding: 0;
         background: transparent;
-        cursor: pointer;
+        color: var(--prompt-muted);
+        padding: 0;
         line-height: 1;
-        font-size: 12px;
-      }
-
-      .prompt-main-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 8px;
-      }
-
-      .prompt-textarea-wrapper {
-        flex: 1;
-      }
-
-      .prompt-textarea {
-        width: 100%;
-        min-height: 44px;
-        max-height: 180px;
-        resize: none;
-        border: none;
-        outline: none;
-        padding: 0;
-        margin: 0;
-        font-family: inherit;
         font-size: 14px;
-        line-height: 1.5;
-        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .prompt-file-chip-remove:hover {
+        color: var(--prompt-primary);
+      }
+
+      .prompt-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: nowrap;
       }
 
       .prompt-actions {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 12px;
+        flex: 1 1 auto;
+        min-width: 0;
       }
 
       .prompt-icon-button {
-        width: 28px;
-        height: 28px;
+        width: 40px;
+        height: 40px;
         border-radius: 9999px;
-        border: none;
-        background: transparent;
-        display: flex;
+        border: 1px solid transparent;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-      }
-
-      .prompt-icon-button:hover {
-        background: rgba(15, 23, 42, 0.06);
-      }
-
-      .prompt-icon-button--primary {
-        background: #111827;
-        color: #ffffff;
-      }
-
-      .prompt-icon-button--primary:hover {
-        background: #020617;
-      }
-
-      .prompt-icon {
-        font-size: 14px;
+        transition: background 0.15s ease, color 0.15s ease,
+          box-shadow 0.15s ease, border-color 0.15s ease;
+        color: var(--prompt-primary);
         line-height: 1;
       }
 
-      /* 简单 tooltip：hover 时在上方显示一条文字 */
-      .prompt-tooltip-wrapper {
-        position: relative;
+      .prompt-icon-button:focus-visible {
+        outline: 2px solid rgba(17, 24, 39, 0.5);
+        outline-offset: 2px;
       }
 
-      .prompt-tooltip-wrapper[data-tooltip]:hover::after {
+      .prompt-icon-button--ghost {
+        background: transparent;
+        border-color: var(--prompt-border);
+      }
+
+      .prompt-icon-button--ghost:hover {
+        background: rgba(15, 23, 42, 0.04);
+      }
+
+      .prompt-icon-button--primary {
+        background: var(--prompt-button-primary);
+        color: var(--prompt-button-primary-text);
+        border-color: var(--prompt-button-primary);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+      }
+
+      .prompt-icon-button--primary:hover:not(:disabled) {
+        background: var(--prompt-button-primary-hover);
+      }
+
+      .prompt-icon-button:disabled {
+        opacity: 0.5;
+        box-shadow: none;
+      }
+
+      .prompt-icon {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      .prompt-tooltip-wrapper {
+        position: relative;
+        display: inline-flex;
+      }
+
+      .prompt-submit-wrapper {
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+
+      .prompt-tooltip-wrapper[data-tooltip]::after {
         content: attr(data-tooltip);
         position: absolute;
         left: 50%;
-        bottom: 100%;
+        bottom: calc(100% + 8px);
         transform: translateX(-50%);
-        margin-bottom: 6px;
-        padding: 4px 6px;
-        border-radius: 4px;
-        background: #111827;
+        padding: 4px 8px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.9);
         color: #ffffff;
-        font-size: 11px;
+        font-size: 12px;
+        line-height: 1;
         white-space: nowrap;
+        opacity: 0;
         pointer-events: none;
-        z-index: 10;
+        transition: opacity 0.15s ease;
       }
 
-      /* 让整个输入组件最大宽度适配卡片内布局 */
-      .prompt-inner {
-        max-width: 768px;
-        margin: 0 auto;
+      .prompt-tooltip-wrapper[data-tooltip]:hover::after,
+      .prompt-tooltip-wrapper[data-tooltip]:focus-within::after {
+        opacity: 1;
+      }
+
+      @media (max-width: 640px) {
+        .prompt-shell {
+          padding: 16px;
+          border-radius: 22px;
+        }
+
+        .prompt-inner {
+          padding: 0 8px;
+        }
+
+        .prompt-footer {
+          flex-wrap: nowrap;
+          gap: 10px;
+        }
+
+        .prompt-icon-button {
+          width: 38px;
+          height: 38px;
+        }
       }
     </style>
 
     <div class="prompt-root">
       <div class="prompt-inner">
         <div class="prompt-shell" data-role="shell">
-          <div class="prompt-files" data-role="files"></div>
-
-          <div class="prompt-main-row">
-            <div class="prompt-textarea-wrapper">
+          <div class="prompt-stack">
+            <label class="prompt-textarea-wrapper">
               <textarea
                 class="prompt-textarea"
                 data-role="textarea"
-                placeholder="Ask me anything..."
+                placeholder="Ask Nexedi RAG anything..."
                 rows="1"
+                aria-label="Prompt input"
               ></textarea>
-            </div>
+            </label>
 
+            <div class="prompt-files" data-role="files"></div>
+          </div>
+
+          <div class="prompt-footer">
             <div class="prompt-actions">
-              <!-- Attach files -->
               <div
                 class="prompt-tooltip-wrapper"
                 data-tooltip="Attach files"
               >
                 <button
                   type="button"
-                  class="prompt-icon-button"
+                  class="prompt-icon-button prompt-icon-button--ghost"
                   data-action="attach"
                 >
-                  <span class="prompt-icon">📎</span>
+                  <span aria-hidden="true">
+                    <svg
+                      class="prompt-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M17.5 6.5v8.25a5.25 5.25 0 1 1-10.5 0V5.75a3.25 3.25 0 0 1 6.5 0v8a1.75 1.75 0 1 1-3.5 0V6.5"
+                      />
+                    </svg>
+                  </span>
+                  <span class="sr-only">Attach files</span>
                 </button>
               </div>
 
-              <!-- Hidden file input -->
               <input
                 type="file"
                 multiple
                 data-role="file-input"
                 style="display: none;"
               />
+            </div>
 
-              <!-- Send / Stop -->
-              <div
-                class="prompt-tooltip-wrapper"
-                data-tooltip="Send message"
-                data-role="send-tooltip"
+            <div
+              class="prompt-tooltip-wrapper prompt-submit-wrapper"
+              data-tooltip="Send message"
+              data-role="send-tooltip"
+            >
+              <button
+                type="button"
+                class="prompt-icon-button prompt-icon-button--primary"
+                data-action="submit"
+                data-role="submit-button"
+                disabled
+                aria-disabled="true"
               >
-                <button
-                  type="button"
-                  class="prompt-icon-button prompt-icon-button--primary"
-                  data-action="submit"
-                >
-                  <span class="prompt-icon" data-role="send-icon">↑</span>
-                </button>
-              </div>
+                <span aria-hidden="true">
+                  <svg
+                    class="prompt-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h13" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </span>
+                <span class="sr-only">Send prompt</span>
+              </button>
             </div>
           </div>
         </div>
@@ -218,4 +415,3 @@
     </div>
   </body>
 </html>
-

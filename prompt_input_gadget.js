@@ -16,13 +16,77 @@
     }
   }
 
+  function formatFileSize(size) {
+    var units = ["B", "KB", "MB", "GB", "TB"],
+      value = size,
+      unit_index = 0;
+
+    if (typeof value !== "number" || isNaN(value)) {
+      return "";
+    }
+
+    while (value >= 1024 && unit_index < units.length - 1) {
+      value /= 1024;
+      unit_index += 1;
+    }
+
+    if (value >= 100 || unit_index === 0) {
+      value = Math.round(value);
+    } else if (value >= 10) {
+      value = value.toFixed(1);
+    } else {
+      value = value.toFixed(2);
+    }
+
+    return value + " " + units[unit_index];
+  }
+
+  function hasInputPayload(gadget) {
+    var text_value = (gadget.input_value || "").trim(),
+      has_files = gadget.file_list && gadget.file_list.length > 0;
+    return text_value.length > 0 || has_files;
+  }
+
+  function updateSendButtonState(gadget) {
+    var button = gadget.element.querySelector('[data-role="submit-button"]'),
+      tooltip = gadget.element.querySelector('[data-role="send-tooltip"]'),
+      disabled = !hasInputPayload(gadget),
+      tooltip_text = disabled ? "Type a prompt to enable" : "Send message";
+
+    if (button) {
+      if (disabled) {
+        button.setAttribute("disabled", "disabled");
+        button.setAttribute("aria-disabled", "true");
+      } else {
+        button.removeAttribute("disabled");
+        button.removeAttribute("aria-disabled");
+      }
+    }
+
+    if (tooltip) {
+      tooltip.setAttribute("data-tooltip", tooltip_text);
+    }
+  }
+
+  function findActionTarget(node) {
+    while (node) {
+      if (node.getAttribute && node.getAttribute("data-action")) {
+        return node;
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
   function renderFiles(gadget) {
     var files_container = gadget.element.querySelector('[data-role="files"]'),
       file_list = gadget.file_list || [],
       i,
       chip,
       name_span,
-      remove_button;
+      size_span,
+      remove_button,
+      file_size;
 
     if (!files_container) {
       return;
@@ -39,6 +103,16 @@
       name_span.textContent = file_list[i].name;
       chip.appendChild(name_span);
 
+      if (file_list[i] && typeof file_list[i].size === "number") {
+        file_size = formatFileSize(file_list[i].size);
+        if (file_size) {
+          size_span = document.createElement("span");
+          size_span.className = "prompt-file-chip-size";
+          size_span.textContent = file_size;
+          chip.appendChild(size_span);
+        }
+      }
+
       remove_button = document.createElement("button");
       remove_button.className = "prompt-file-chip-remove";
       remove_button.textContent = "×";
@@ -48,6 +122,8 @@
 
       files_container.appendChild(chip);
     }
+
+    updateSendButtonState(gadget);
   }
 
   function clearInputAndFiles(gadget) {
@@ -69,9 +145,9 @@
   }
 
   function handleSubmit(gadget) {
-    var trimmed = (gadget.input_value || "").replace(/\s+$/, "");
+    var trimmed = (gadget.input_value || "").trim();
 
-    if (!trimmed && (!gadget.file_list || gadget.file_list.length === 0)) {
+    if (!hasInputPayload(gadget)) {
       return;
     }
 
@@ -88,8 +164,9 @@
     .ready(function (gadget) {
       gadget.input_value = "";
       gadget.file_list = [];
-      gadget.max_height = 180;
+      gadget.max_height = 144;
       gadget.submit_handler = null;
+      gadget.is_dark_mode = false;
     })
 
     // Parent gadget uses this method to inject callback
@@ -105,6 +182,20 @@
       if (textarea) {
         adjustTextareaHeight(textarea, gadget.max_height);
       }
+      updateSendButtonState(gadget);
+    })
+
+    .declareMethod("setTheme", function (is_dark) {
+      var root = document.documentElement;
+      this.is_dark_mode = Boolean(is_dark);
+      if (!root) {
+        return;
+      }
+      if (this.is_dark_mode) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
     })
 
     // Text input
@@ -117,6 +208,7 @@
         if (target.getAttribute("data-role") === "textarea") {
           gadget.input_value = target.value;
           adjustTextareaHeight(target, gadget.max_height);
+          updateSendButtonState(gadget);
         }
       },
       true,
@@ -146,15 +238,14 @@
       "click",
       function (evt) {
         var gadget = this,
+          action_node,
           action,
           index,
           textarea,
           file_input;
 
-        action = evt.target.getAttribute("data-action");
-        if (!action && evt.target.parentNode) {
-          action = evt.target.parentNode.getAttribute("data-action");
-        }
+        action_node = findActionTarget(evt.target);
+        action = action_node && action_node.getAttribute("data-action");
 
         if (action === "submit") {
           evt.preventDefault();
@@ -209,6 +300,7 @@
             }
             renderFiles(gadget);
           }
+          target.value = "";
         }
       },
       true,
@@ -216,4 +308,3 @@
     );
 
 }(window, document, rJS, RSVP));
-
