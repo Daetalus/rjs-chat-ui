@@ -3,7 +3,8 @@
 (function (window, rJS, RSVP) {
   "use strict";
 
-  var STORAGE_KEY = "rjs_session_messages";
+  var STORAGE_KEY = "rjs_session_messages",
+    DEFAULT_WELCOME_MESSAGE = "Hello! This is a RenderJS-based chat demo.";
 
   function loadSessionMessageDict() {
     var raw;
@@ -75,6 +76,21 @@
     }
   }
 
+  function setMainViewMode(gadget, mode) {
+    var layout;
+    if (!gadget || !gadget.element) {
+      return;
+    }
+    if (gadget.current_view_mode === mode) {
+      return;
+    }
+    layout = gadget.element.querySelector('[data-role="chat-layout"]');
+    if (layout) {
+      layout.setAttribute("data-mode", mode);
+      gadget.current_view_mode = mode;
+    }
+  }
+
   rJS(window)
     .ready(function (gadget) {
       gadget.session_message_dict = {};
@@ -85,6 +101,9 @@
 
       // Record whether each session has automatically generated a title from the first question
       gadget.derived_title_map = {};
+      gadget.session_started_map = {};
+      gadget.new_session_map = {};
+      gadget.current_view_mode = "chat";
     })
 
     .declareService(function () {
@@ -96,7 +115,9 @@
       function handleSidebarActiveChange(new_active_id) {
         var prev_id = gadget.active_session_id,
           dict = gadget.session_message_dict,
-          messages;
+          messages,
+          stored,
+          started_flag;
 
         if (!new_active_id) {
           return;
@@ -119,19 +140,36 @@
         // Update URL
         setSessionIdInURL(new_active_id);
 
-        // Load messages for the new session
-        if (dict[new_active_id] &&
-            chat_gadget && chat_gadget.setMessages) {
-          chat_gadget.setMessages(dict[new_active_id]);
-        } else if (chat_gadget && chat_gadget.setMessages) {
-          // No saved messages: give a default welcome message
-          chat_gadget.setMessages([
-            {
-              id: 1,
-              role: "assistant",
-              content: "Hello! This is a RenderJS-based chat demo."
+        stored = dict[new_active_id];
+        if (gadget.session_started_map[new_active_id] === undefined) {
+          if (gadget.new_session_map[new_active_id]) {
+            gadget.session_started_map[new_active_id] = false;
+          } else {
+            gadget.session_started_map[new_active_id] = true;
+          }
+        }
+        started_flag = gadget.session_started_map[new_active_id];
+
+        if (started_flag) {
+          if (chat_gadget && chat_gadget.setMessages) {
+            if (stored && stored.length > 0) {
+              chat_gadget.setMessages(stored);
+            } else {
+              chat_gadget.setMessages([
+                {
+                  id: 1,
+                  role: "assistant",
+                  content: DEFAULT_WELCOME_MESSAGE
+                }
+              ]);
             }
-          ]);
+          }
+          setMainViewMode(gadget, "chat");
+        } else {
+          if (chat_gadget && chat_gadget.clearMessages) {
+            chat_gadget.clearMessages();
+          }
+          setMainViewMode(gadget, "landing");
         }
       }
 
@@ -167,6 +205,10 @@
           chat_gadget.handleUserSubmit(trimmed);
         }
 
+        gadget.session_started_map[session_id] = true;
+        delete gadget.new_session_map[session_id];
+        setMainViewMode(gadget, "chat");
+
         // Immediately save the current session messages after sending
         if (chat_gadget && chat_gadget.getMessages) {
           try {
@@ -176,6 +218,16 @@
             // ignore
           }
         }
+      }
+
+      function handleSessionCreated(new_id) {
+        if (!new_id) {
+          return;
+        }
+        gadget.new_session_map[new_id] = true;
+        gadget.session_started_map[new_id] = false;
+        gadget.session_message_dict[new_id] = [];
+        setMainViewMode(gadget, "landing");
       }
 
       // 1. First get the three sub gadgets: sidebar / chat / prompt
@@ -215,6 +267,10 @@
           // Sidebar → Root: callback when active session changes
           if (sidebar_gadget.setSessionChangeHandler) {
             sidebar_gadget.setSessionChangeHandler(handleSidebarActiveChange);
+          }
+
+          if (sidebar_gadget.setSessionCreateHandler) {
+            sidebar_gadget.setSessionCreateHandler(handleSessionCreated);
           }
 
           if (sidebar_gadget.setThemeChangeHandler) {

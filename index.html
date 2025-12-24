@@ -62,13 +62,18 @@
         flex-direction: column;
       }
 
-      /* 整个聊天布局（上方滚动 chat，下方固定 prompt） */
+      /* 整个聊天布局（上方滚动 chat，下方固定 prompt 或欢迎页） */
       .chat-layout {
         flex: 1;
         min-height: 0;
 
         display: flex;
         flex-direction: column;
+        transition: background 0.2s ease;
+      }
+
+      .chat-layout[data-mode="landing"] .chat-scroll {
+        display: none;
       }
 
       /* 上方滚动区域：滚动条在最右边 */
@@ -95,9 +100,48 @@
         /* 在 page-center 内自然占满宽度即可 */
       }
 
-      /* 右侧 prompt gadget 容器 */
-      [data-gadget-scope="prompt"] {
-        /* 样式主要在 prompt_input_gadget.html 内 */
+      .prompt-zone {
+        flex: 0 0 auto;
+        padding: 0 0 16px;
+      }
+
+      .prompt-zone-inner {
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+      }
+
+      .prompt-landing-title {
+        display: none;
+        text-align: center;
+        font-size: 2.2rem;
+        line-height: 1.25;
+        font-weight: 600;
+        margin: 0;
+        color: inherit;
+      }
+
+      .chat-layout[data-mode="landing"] .prompt-zone {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 0;
+      }
+
+      .chat-layout[data-mode="landing"] .prompt-zone-inner {
+        min-height: 60vh;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .chat-layout[data-mode="landing"] .prompt-landing-title {
+        display: block;
       }
     </style>
   </head>
@@ -112,7 +156,7 @@
 
       <!-- 右侧主内容：Chat + Prompt -->
       <div class="app-main">
-        <div class="chat-layout">
+        <div class="chat-layout" data-role="chat-layout" data-mode="chat">
           <!-- 上方滚动区域：Chat Container -->
           <div class="chat-scroll">
             <div class="page-center">
@@ -125,13 +169,16 @@
           </div>
 
           <!-- 下方固定 Prompt Input -->
-          <div>
-            <div class="page-center">
-              <div
-                data-gadget-url="prompt_input_gadget.html"
-                data-gadget-scope="prompt"
-                data-gadget-sandbox="public"
-              ></div>
+          <div class="prompt-zone">
+            <div class="prompt-zone-inner">
+              <h2 class="prompt-landing-title">Nexedi RAG Assistant</h2>
+              <div class="page-center">
+                <div
+                  data-gadget-url="prompt_input_gadget.html"
+                  data-gadget-scope="prompt"
+                  data-gadget-sandbox="public"
+                ></div>
+              </div>
             </div>
           </div>
         </div>
@@ -141,4 +188,3 @@
     <noscript>Please enable JavaScript.</noscript>
   </body>
 </html>
-

@@ -346,6 +346,7 @@
 
       gadget.open_menu_session_id = null;
       gadget.session_change_handler = null;
+      gadget.session_create_handler = null;
       gadget.theme_change_handler = null;
       gadget.logout_handler = null;
 
@@ -398,6 +399,10 @@
     .declareMethod("setSessionChangeHandler", function (handler) {
       this.session_change_handler = handler;
       notifySessionChange(this);
+    })
+
+    .declareMethod("setSessionCreateHandler", function (handler) {
+      this.session_create_handler = handler;
     })
 
     .declareMethod("setThemeChangeHandler", function (handler) {
@@ -516,6 +521,11 @@
 
           gadget.active_session_id = new_id;
           gadget.open_menu_session_id = null;
+
+          if (gadget.session_create_handler) {
+            gadget.session_create_handler(new_id);
+          }
+
           renderSessions(gadget);
           notifySessionChange(gadget);
           return;
