@@ -91,6 +91,15 @@
     }
   }
 
+  function updateAuthState(gadget, state) {
+    var normalized = state === "authenticated" ? "unlocked" : "locked",
+      body = window.document && window.document.body;
+    gadget.auth_state = normalized;
+    if (body) {
+      body.setAttribute("data-auth-state", normalized);
+    }
+  }
+
   rJS(window)
     .ready(function (gadget) {
       gadget.session_message_dict = {};
@@ -98,19 +107,23 @@
       gadget.sidebar_gadget = null;
       gadget.chat_gadget = null;
       gadget.prompt_gadget = null;
+      gadget.auth_gadget = null;
+      gadget.is_authenticated = false;
 
       // Record whether each session has automatically generated a title from the first question
       gadget.derived_title_map = {};
       gadget.session_started_map = {};
       gadget.new_session_map = {};
       gadget.current_view_mode = "chat";
+      updateAuthState(gadget, "locked");
     })
 
     .declareService(function () {
       var gadget = this,
         sidebar_gadget,
         chat_gadget,
-        prompt_gadget;
+        prompt_gadget,
+        auth_gadget;
 
       function handleSidebarActiveChange(new_active_id) {
         var prev_id = gadget.active_session_id,
@@ -241,6 +254,23 @@
         }
       }
 
+      function handleAuthSubmit(credential) {
+        var username = credential && credential.username,
+          password = credential && credential.password;
+
+        return new RSVP.Promise(function (resolve, reject) {
+          window.setTimeout(function () {
+            if (username === "nexedi" && password === "1234") {
+              gadget.is_authenticated = true;
+              updateAuthState(gadget, "authenticated");
+              resolve();
+            } else {
+              reject(new Error("Invalid username or password."));
+            }
+          }, 150);
+        });
+      }
+
       return gadget.getDeclaredGadget("sidebar")
         .push(function (sg) {
           sidebar_gadget = sg;
@@ -279,7 +309,17 @@
 
           // setSessionChangeHandler internally calls notifySessionChange once immediately,
           // thus triggering handleSidebarActiveChange to complete the initial chat content + URL initialization.
-          return;
+          return gadget.getDeclaredGadget("auth");
+        })
+        .push(function (ag) {
+          auth_gadget = ag;
+          gadget.auth_gadget = ag;
+          if (auth_gadget.setLoginHandler) {
+            auth_gadget.setLoginHandler(handleAuthSubmit);
+          }
+          if (auth_gadget.focus) {
+            auth_gadget.focus();
+          }
         });
     });
 

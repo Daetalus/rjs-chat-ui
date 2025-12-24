@@ -37,6 +37,15 @@
         overflow: hidden; /* 滚动交给内部容器 */
       }
 
+      body[data-auth-state="locked"] .app-shell {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      body[data-auth-state="unlocked"] .app-shell {
+        visibility: visible;
+      }
+
       /* 顶层横向结构：左 Sidebar + 右主内容 */
       .app-shell {
         flex: 1;
@@ -140,12 +149,25 @@
         align-items: center;
       }
 
+      .auth-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        align-items: stretch;
+        justify-content: center;
+        background: radial-gradient(circle at top, rgba(15, 23, 42, 0.2), rgba(0, 0, 0, 0.65));
+      }
+
+      body[data-auth-state="unlocked"] .auth-layer {
+        display: none;
+      }
+
       .chat-layout[data-mode="landing"] .prompt-landing-title {
         display: block;
       }
     </style>
   </head>
-  <body>
+  <body data-auth-state="locked">
     <div class="app-shell">
       <!-- 左侧 AppSidebar gadget -->
       <div
@@ -183,6 +205,14 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="auth-layer" data-role="auth-layer">
+      <div
+        data-gadget-url="auth_screen_gadget.html"
+        data-gadget-scope="auth"
+        data-gadget-sandbox="public"
+      ></div>
     </div>
 
     <noscript>Please enable JavaScript.</noscript>
