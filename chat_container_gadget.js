@@ -15,6 +15,50 @@
     container.scrollTop = container.scrollHeight;
   }
 
+  function scrollMessageToTop(gadget, message_id) {
+    if (!gadget || !message_id) {
+      return RSVP.resolve();
+    }
+    return new RSVP.Promise(function (resolve) {
+      var element = gadget.element,
+        log_inner,
+        selector,
+        target;
+
+      if (!element) {
+        resolve();
+        return;
+      }
+
+      log_inner = element.querySelector('[data-role="log-inner"]');
+      if (!log_inner) {
+        resolve();
+        return;
+      }
+
+      selector = '[data-message-id="' + message_id + '"]';
+      target = log_inner.querySelector(selector);
+      if (!target || !target.scrollIntoView) {
+        resolve();
+        return;
+      }
+
+      (window.requestAnimationFrame ||
+        function (cb) {
+          window.setTimeout(cb, 0);
+        })(function () {
+        try {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (ignore) {
+          target.scrollIntoView();
+        }
+        window.setTimeout(function () {
+          resolve();
+        }, 350);
+      });
+    });
+  }
+
   function updateStreamingButton(gadget) {
     var button = gadget.element.querySelector('[data-action="stream"]');
     if (!button) {
@@ -30,7 +74,7 @@
     }
   }
 
-  function renderMessages(gadget) {
+  function renderMessages(gadget, options) {
     var log_inner = gadget.element.querySelector('[data-role="log-inner"]'),
       messages = gadget.messages || [],
       i,
@@ -55,6 +99,7 @@
       row_element.className =
         "message-row " +
         (is_assistant ? "message-row--assistant" : "message-row--user");
+      row_element.setAttribute("data-message-id", message.id);
 
       if (is_assistant) {
         avatar_element = document.createElement("div");
@@ -79,8 +124,9 @@
       log_inner.appendChild(row_element);
     }
 
-    // The outer .chat-scroll controls the scrollbar, here only ensure scrolling to the bottom
-    scrollToBottom(log_inner.parentNode);
+    if (!options || options.scrollToBottom !== false) {
+      scrollToBottom(log_inner.parentNode);
+    }
     updateStreamingButton(gadget);
   }
 
@@ -164,7 +210,8 @@
 
     .declareMethod("handleUserSubmit", function (text) {
       var gadget = this,
-        trimmed;
+        trimmed,
+        new_message_id;
 
       if (typeof text !== "string") {
         return;
@@ -176,16 +223,18 @@
       }
 
       gadget.max_message_id += 1;
+      new_message_id = gadget.max_message_id;
       gadget.messages.push({
-        id: gadget.max_message_id,
+        id: new_message_id,
         role: "user",
         content: trimmed
       });
 
-      renderMessages(gadget);
+      renderMessages(gadget, { scrollToBottom: false });
 
-      // Append an assistant streaming placeholder reply
-      gadget.startStreamingPlaceholder();
+      return scrollMessageToTop(gadget, new_message_id).then(function () {
+        gadget.startStreamingPlaceholder();
+      });
     })
 
     .declareMethod("startStreamingPlaceholder", function () {
