@@ -73,7 +73,7 @@
       }
 
       .sidebar-root[data-state="collapsed"] {
-        width: 157px;
+        width: 72px;
       }
 
       .sidebar-panel {
@@ -105,6 +105,9 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+      }
+
+      .sidebar-root[data-state="expanded"] .sidebar-header-top {
         width: 100%;
       }
 
@@ -129,8 +132,8 @@
       }
 
       .sidebar-trigger {
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         border-radius: 9999px;
         border: 1px solid var(--sidebar-border);
         background: var(--sidebar-card-muted);
@@ -500,25 +503,40 @@
         border: 0;
       }
 
+      .sidebar-root[data-state="collapsed"] .sidebar-header-top {
+        justify-content: flex-end;
+      }
+
       .sidebar-root[data-state="collapsed"] .sidebar-brand-subtitle,
       .sidebar-root[data-state="collapsed"] .sidebar-brand-title,
       .sidebar-root[data-state="collapsed"] .sidebar-section-label,
       .sidebar-root[data-state="collapsed"] .sidebar-state-message,
       .sidebar-root[data-state="collapsed"] .sidebar-theme-card,
-      .sidebar-root[data-state="collapsed"] .sidebar-signout {
+      .sidebar-root[data-state="collapsed"] .sidebar-signout,
+      .sidebar-root[data-state="collapsed"] .sidebar-session-scroll,
+      .sidebar-root[data-state="collapsed"] .sidebar-footer {
         display: none !important;
       }
 
       .sidebar-root[data-state="collapsed"] .sidebar-panel {
-        padding: 20px 12px;
+        padding: 16px 8px;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-trigger {
+        width: 40px;
+        height: 40px;
+      }
+
+      .sidebar-root[data-state="collapsed"] .sidebar-newchat {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 9999px;
+        justify-content: center;
       }
 
       .sidebar-root[data-state="collapsed"] .sidebar-newchat span:nth-of-type(2) {
         display: none;
-      }
-
-      .sidebar-root[data-state="collapsed"] .sidebar-newchat {
-        padding: 12px;
       }
 
       .sidebar-root[data-state="collapsed"] .sidebar-session-button {
