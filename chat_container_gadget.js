@@ -45,16 +45,18 @@
 
       (window.requestAnimationFrame ||
         function (cb) {
-          window.setTimeout(cb, 0);
+          RSVP.delay(0).then(function () {
+            cb();
+          });
         })(function () {
         try {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (ignore) {
           target.scrollIntoView();
         }
-        window.setTimeout(function () {
+        RSVP.delay(350).then(function () {
           resolve();
-        }, 350);
+        });
       });
     });
   }

@@ -258,16 +258,13 @@
         var username = credential && credential.username,
           password = credential && credential.password;
 
-        return new RSVP.Promise(function (resolve, reject) {
-          window.setTimeout(function () {
-            if (username === "nexedi" && password === "1234") {
-              gadget.is_authenticated = true;
-              updateAuthState(gadget, "authenticated");
-              resolve();
-            } else {
-              reject(new Error("Invalid username or password."));
-            }
-          }, 150);
+        return RSVP.delay(150).then(function () {
+          if (username === "nexedi" && password === "1234") {
+            gadget.is_authenticated = true;
+            updateAuthState(gadget, "authenticated");
+            return;
+          }
+          throw new Error("Invalid username or password.");
         });
       }
 
