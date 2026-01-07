@@ -361,39 +361,57 @@
 
       root = gadget.element.querySelector('[data-role="sidebar-root"]');
       if (root) {
-        root.addEventListener("click", function (event) {
-          var target = event.target;
-          if (!target.closest) {
-            return;
-          }
-          if (
-            gadget.open_menu_session_id &&
-            !target.closest(".sidebar-session-menu") &&
-            !target.closest(".sidebar-session-more-btn")
-          ) {
-            gadget.open_menu_session_id = null;
-            renderSessions(gadget);
-          }
-        });
+        gadget.root_click_listener = rJS.loopEventListener(
+          root,
+          "click",
+          false,
+          function (event) {
+            var target = event.target;
+            if (!target.closest) {
+              return;
+            }
+            if (
+              gadget.open_menu_session_id &&
+              !target.closest(".sidebar-session-menu") &&
+              !target.closest(".sidebar-session-more-btn")
+            ) {
+              gadget.open_menu_session_id = null;
+              renderSessions(gadget);
+            }
+          },
+          false
+        );
       }
 
-      window.addEventListener("resize", function () {
-        gadget.is_mobile = isMobileWidth();
-        if (!gadget.is_mobile) {
-          gadget.mobile_open = false;
-        }
-        applyState(gadget);
-      });
+      gadget.resize_listener = rJS.loopEventListener(
+        window,
+        "resize",
+        false,
+        function () {
+          gadget.is_mobile = isMobileWidth();
+          if (!gadget.is_mobile) {
+            gadget.mobile_open = false;
+          }
+          applyState(gadget);
+        },
+        false
+      );
 
-      window.addEventListener("keydown", function (event) {
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === KEYBOARD_SHORTCUT
-        ) {
-          event.preventDefault();
-          toggleSidebar(gadget);
-        }
-      });
+      gadget.keydown_listener = rJS.loopEventListener(
+        window,
+        "keydown",
+        false,
+        function (event) {
+          if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === KEYBOARD_SHORTCUT
+          ) {
+            event.preventDefault();
+            toggleSidebar(gadget);
+          }
+        },
+        false
+      );
     })
 
     .declareMethod("setSessionChangeHandler", function (handler) {
