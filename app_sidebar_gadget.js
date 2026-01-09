@@ -335,20 +335,16 @@
       gadget.is_mobile = isMobileWidth();
       gadget.mobile_open = false;
 
-      gadget.sessions = [
-        { id: "session-1", title: "RAG onboarding" },
-        { id: "session-2", title: "Design review notes" },
-        { id: "session-3", title: "Debugging checklist" }
-      ];
-      gadget.session_seq = gadget.sessions.length;
-      gadget.active_session_id =
-        gadget.sessions.length > 0 ? gadget.sessions[0].id : null;
+      gadget.sessions = [];
+      gadget.active_session_id = null;
 
       gadget.open_menu_session_id = null;
       gadget.session_change_handler = null;
       gadget.session_create_handler = null;
       gadget.theme_change_handler = null;
       gadget.logout_handler = null;
+      gadget.session_rename_handler = null;
+      gadget.session_delete_handler = null;
 
       gadget.sessions_error = "";
       gadget.is_loading_sessions = false;
@@ -423,6 +419,14 @@
       this.session_create_handler = handler;
     })
 
+    .declareMethod("setSessionRenameHandler", function (handler) {
+      this.session_rename_handler = handler;
+    })
+
+    .declareMethod("setSessionDeleteHandler", function (handler) {
+      this.session_delete_handler = handler;
+    })
+
     .declareMethod("setThemeChangeHandler", function (handler) {
       this.theme_change_handler = handler;
       notifyThemeChange(this);
@@ -460,14 +464,6 @@
       } else {
         gadget.sessions = session_list.slice(0);
       }
-      gadget.session_seq = gadget.sessions.length;
-      if (
-        gadget.active_session_id &&
-        !findSessionById(gadget, gadget.active_session_id)
-      ) {
-        gadget.active_session_id =
-          gadget.sessions.length > 0 ? gadget.sessions[0].id : null;
-      }
       renderSessions(gadget);
     })
 
@@ -482,6 +478,13 @@
 
     .declareMethod("setLogoutHandler", function (handler) {
       this.logout_handler = handler;
+    })
+
+    .declareMethod("setActiveSession", function (session_id) {
+      this.active_session_id = session_id || null;
+      this.open_menu_session_id = null;
+      renderSessions(this);
+      notifySessionChange(this);
     })
 
     .declareMethod("toggleSidebar", function () {
@@ -527,25 +530,11 @@
         }
 
         if (action === "new-chat") {
-          var new_id;
           evt.preventDefault();
-          gadget.session_seq += 1;
-          new_id = "session-" + gadget.session_seq;
-
-          gadget.sessions.unshift({
-            id: new_id,
-            title: "New chat"
-          });
-
-          gadget.active_session_id = new_id;
           gadget.open_menu_session_id = null;
-
           if (gadget.session_create_handler) {
-            gadget.session_create_handler(new_id);
+            gadget.session_create_handler();
           }
-
-          renderSessions(gadget);
-          notifySessionChange(gadget);
           return;
         }
 
@@ -599,13 +588,24 @@
           if (!session) {
             return;
           }
-          new_title = window.prompt(
-            "Rename chat",
-            session.title || ""
-          );
+          new_title = window.prompt("Rename chat", session.title || "");
           gadget.open_menu_session_id = null;
           if (new_title) {
-            session.title = new_title.trim() || session.title;
+            new_title = new_title.trim();
+            if (new_title) {
+              session.title = new_title;
+            }
+            renderSessions(gadget);
+            if (new_title && gadget.session_rename_handler) {
+              RSVP.resolve(
+                gadget.session_rename_handler(session_id, new_title)
+              ).then(null, function (error) {
+                window.alert(
+                  (error && error.message) || "Unable to rename session."
+                );
+              });
+            }
+          } else {
             renderSessions(gadget);
           }
           return;
@@ -618,24 +618,18 @@
             renderSessions(gadget);
             return;
           }
-
-          for (i = 0; i < gadget.sessions.length; i += 1) {
-            if (gadget.sessions[i].id === session_id) {
-              gadget.sessions.splice(i, 1);
-              break;
-            }
+          if (gadget.session_delete_handler) {
+            RSVP.resolve(gadget.session_delete_handler(session_id)).then(
+              null,
+              function (error) {
+                window.alert(
+                  (error && error.message) || "Unable to delete session."
+                );
+              }
+            );
           }
-
-          if (gadget.active_session_id === session_id) {
-            if (gadget.sessions.length > 0) {
-              gadget.active_session_id = gadget.sessions[0].id;
-            } else {
-              gadget.active_session_id = null;
-            }
-          }
-
           renderSessions(gadget);
-          notifySessionChange(gadget);
+          return;
         }
       },
       false,

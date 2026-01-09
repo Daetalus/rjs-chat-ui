@@ -61,19 +61,22 @@
     });
   }
 
-  function updateStreamingButton(gadget) {
-    var button = gadget.element.querySelector('[data-action="stream"]');
-    if (!button) {
-      return;
+  function findMessageById(message_list, message_id) {
+    var i,
+      current_id;
+    if (!message_id || !message_list) {
+      return null;
     }
-
-    if (gadget.is_streaming) {
-      button.textContent = "Streaming...";
-      button.disabled = true;
-    } else {
-      button.textContent = "Show Streaming";
-      button.disabled = false;
+    for (i = 0; i < message_list.length; i += 1) {
+      current_id = message_list[i] && message_list[i].id;
+      if (
+        current_id &&
+        String(current_id) === String(message_id)
+      ) {
+        return message_list[i];
+      }
     }
+    return null;
   }
 
   function renderMessages(gadget, options) {
@@ -129,7 +132,6 @@
     if (!options || options.scrollToBottom !== false) {
       scrollToBottom(log_inner.parentNode);
     }
-    updateStreamingButton(gadget);
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -138,21 +140,8 @@
 
   rJS(window)
     .ready(function (gadget) {
-      gadget.messages = [
-        {
-          id: 1,
-          role: "assistant",
-          content: "Hello! This is a RenderJS-based chat demo."
-        }
-      ];
-      gadget.max_message_id = 1;
-
-      gadget.is_streaming = false;
-      gadget.stream_interval_id = null;
-      gadget.stream_buffer = "";
-      gadget.placeholder_text =
-        "This is a placeholder streamed reply from the AI. " +
-        "Replace this with real model output later.";
+      gadget.messages = [];
+      gadget.max_message_id = 0;
       gadget.is_dark_mode = false;
       renderMessages(gadget);
     })
@@ -208,7 +197,7 @@
       renderMessages(gadget);
     })
 
-    // ====== Original submit + streaming logic remains unchanged ======
+    // ====== User input handling ======
 
     .declareMethod("handleUserSubmit", function (text) {
       var gadget = this,
@@ -234,52 +223,37 @@
 
       renderMessages(gadget, { scrollToBottom: false });
 
-      return scrollMessageToTop(gadget, new_message_id).then(function () {
-        gadget.startStreamingPlaceholder();
-      });
+      return scrollMessageToTop(gadget, new_message_id);
     })
 
-    .declareMethod("startStreamingPlaceholder", function () {
+    .declareMethod("appendAssistantMessage", function (content) {
       var gadget = this,
-        new_id,
-        stream_index = 0,
-        full_text = gadget.placeholder_text;
-
-      if (gadget.is_streaming) {
-        return;
-      }
-
-      gadget.is_streaming = true;
-      gadget.stream_buffer = "";
+        new_id;
 
       gadget.max_message_id += 1;
       new_id = gadget.max_message_id;
       gadget.messages.push({
         id: new_id,
         role: "assistant",
-        content: ""
+        content: content || ""
       });
-
       renderMessages(gadget);
+      return new_id;
+    })
 
-      gadget.stream_interval_id = window.setInterval(function () {
-        var last_message;
-
-        if (stream_index < full_text.length) {
-          gadget.stream_buffer += full_text.charAt(stream_index);
-          stream_index += 1;
-
-          last_message = gadget.messages[gadget.messages.length - 1];
-          last_message.content = gadget.stream_buffer;
-
-          renderMessages(gadget);
-        } else {
-          window.clearInterval(gadget.stream_interval_id);
-          gadget.stream_interval_id = null;
-          gadget.is_streaming = false;
-          updateStreamingButton(gadget);
-        }
-      }, 30);
+    .declareMethod("updateMessageContent", function (message_id, content) {
+      var message = findMessageById(this.messages, message_id),
+        bubble;
+      if (!message) {
+        return;
+      }
+      message.content = content || "";
+      bubble = this.element.querySelector(
+        '[data-message-id="' + message_id + '"] .message-bubble'
+      );
+      if (bubble) {
+        bubble.textContent = message.content;
+      }
     })
 
     .declareMethod("setTheme", function (is_dark) {
@@ -294,18 +268,5 @@
         root.classList.remove("dark");
       }
     })
-
-    .onEvent(
-      "click",
-      function (evt) {
-        var target = evt.target;
-        if (target.getAttribute("data-action") === "stream") {
-          evt.preventDefault();
-          this.startStreamingPlaceholder();
-        }
-      },
-      false,
-      true
-    );
 
 }(window, document, rJS, RSVP));

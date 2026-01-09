@@ -50,8 +50,16 @@
   function updateSendButtonState(gadget) {
     var button = gadget.element.querySelector('[data-role="submit-button"]'),
       tooltip = gadget.element.querySelector('[data-role="send-tooltip"]'),
-      disabled = !hasInputPayload(gadget),
-      tooltip_text = disabled ? "Type a prompt to enable" : "Send message";
+      disabled = gadget.is_busy || !hasInputPayload(gadget),
+      tooltip_text;
+
+    if (gadget.is_busy) {
+      tooltip_text = "Waiting for assistant response…";
+    } else if (disabled) {
+      tooltip_text = "Type a prompt to enable";
+    } else {
+      tooltip_text = "Send message";
+    }
 
     if (button) {
       if (disabled) {
@@ -147,7 +155,7 @@
   function handleSubmit(gadget) {
     var trimmed = (gadget.input_value || "").trim();
 
-    if (!hasInputPayload(gadget)) {
+    if (gadget.is_busy || !hasInputPayload(gadget)) {
       return;
     }
 
@@ -167,6 +175,7 @@
       gadget.max_height = 144;
       gadget.submit_handler = null;
       gadget.is_dark_mode = false;
+      gadget.is_busy = false;
     })
 
     // Parent gadget uses this method to inject callback
@@ -196,6 +205,16 @@
       } else {
         root.classList.remove("dark");
       }
+    })
+
+    .declareMethod("setBusy", function (flag) {
+      this.is_busy = Boolean(flag);
+      if (this.is_busy) {
+        this.element.setAttribute("data-busy", "true");
+      } else {
+        this.element.removeAttribute("data-busy");
+      }
+      updateSendButtonState(this);
     })
 
     // Text input
