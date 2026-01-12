@@ -104,6 +104,11 @@
       row_element.className =
         "message-row " +
         (is_assistant ? "message-row--assistant" : "message-row--user");
+      
+      if (message.is_streaming) {
+        row_element.classList.add("message-row--streaming");
+      }
+
       row_element.setAttribute("data-message-id", message.id);
 
       if (is_assistant) {
@@ -228,7 +233,7 @@
 
     // ====== User input handling ======
 
-    .declareMethod("handleUserSubmit", function (text) {
+    .declareMethod("handleUserSubmit", function (text, options) {
       var gadget = this,
         trimmed,
         new_message_id;
@@ -252,10 +257,16 @@
 
       renderMessages(gadget, { scrollToBottom: false });
 
-      return scrollMessageToTop(gadget, new_message_id);
+      if (options && options.scroll === false) {
+        return RSVP.resolve(new_message_id);
+      }
+
+      return scrollMessageToTop(gadget, new_message_id).then(function () {
+        return new_message_id;
+      });
     })
 
-    .declareMethod("appendAssistantMessage", function (content) {
+    .declareMethod("appendAssistantMessage", function (content, options) {
       var gadget = this,
         new_id;
 
@@ -264,7 +275,8 @@
       gadget.messages.push({
         id: new_id,
         role: "assistant",
-        content: content || ""
+        content: content || "",
+        is_streaming: options && options.is_streaming
       });
       renderMessages(gadget);
       return new_id;
@@ -281,6 +293,20 @@
         return;
       }
       renderMessages(gadget, { scrollToBottom: false });
+    })
+
+    .declareMethod("finishStreamingMessage", function (message_id) {
+      var gadget = this,
+        message = findMessageById(gadget.messages, message_id);
+      if (!message) {
+        return;
+      }
+      message.is_streaming = false;
+      renderMessages(gadget, { scrollToBottom: false });
+    })
+
+    .declareMethod("scrollToMessage", function (message_id) {
+      return scrollMessageToTop(this, message_id);
     })
 
     .declareMethod("setTheme", function (is_dark) {

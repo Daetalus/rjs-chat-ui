@@ -479,9 +479,9 @@
         loadSessionDetail(new_active_id);
       }
 
-      function streamChatResponse(session_id, user_text) {
+      function streamChatResponse(session_id, user_text, assistant_id) {
         var accumulated = "",
-          assistant_message_id = null,
+          assistant_message_id = assistant_id,
           assistant_message_promise = null,
           buffer = "",
           pending_content = "",
@@ -513,11 +513,12 @@
               return assistant_message_id;
             });
           }
+          // Should not happen with new flow, but fallback:
           if (assistant_message_promise) {
             return assistant_message_promise;
           }
           assistant_message_promise = queueTask(function () {
-            return chat_gadget.appendAssistantMessage("").then(function (id) {
+            return chat_gadget.appendAssistantMessage("", { is_streaming: true }).then(function (id) {
               assistant_message_id = id;
               return id;
             });
@@ -563,6 +564,9 @@
         function finalizeStream() {
           gadget.active_stream_controller = null;
           setPromptBusy(false);
+          if (chat_gadget && chat_gadget.finishStreamingMessage && assistant_message_id) {
+             chat_gadget.finishStreamingMessage(assistant_message_id);
+          }
           gadget.session_cache[session_id] = null;
           return loadSessionDetail(session_id);
         }
@@ -758,7 +762,8 @@
       function handlePromptSubmit(text) {
         var session_id = gadget.active_session_id,
           trimmed = typeof text === "string" ? text.replace(/\s+$/, "") : "",
-          title;
+          title,
+          user_msg_id;
 
         if (!trimmed || !session_id || gadget.is_streaming) {
           return;
@@ -772,11 +777,18 @@
 
         if (chat_gadget && chat_gadget.handleUserSubmit) {
           chat_gadget
-            .handleUserSubmit(trimmed)
-            .then(function () {
+            .handleUserSubmit(trimmed, { scroll: false })
+            .then(function (id) {
+              user_msg_id = id;
               gadget.session_started_map[session_id] = true;
               setMainViewMode(gadget, "chat");
-              return streamChatResponse(session_id, trimmed);
+              return chat_gadget.appendAssistantMessage("", { is_streaming: true });
+            })
+            .then(function (assistant_msg_id) {
+              return chat_gadget.scrollToMessage(user_msg_id)
+                .then(function () {
+                  return streamChatResponse(session_id, trimmed, assistant_msg_id);
+                });
             });
         }
       }
