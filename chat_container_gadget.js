@@ -61,6 +61,44 @@
     });
   }
 
+  function scrollLastUserMessageToTop(gadget) {
+    var element = gadget.element,
+      log_inner,
+      messages = gadget.messages || [],
+      i,
+      last_user_msg = null,
+      target;
+
+    if (!element) {
+      return;
+    }
+    log_inner = element.querySelector('[data-role="log-inner"]');
+    if (!log_inner) {
+      return;
+    }
+
+    // Find last user message
+    for (i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].role === "user") {
+        last_user_msg = messages[i];
+        break;
+      }
+    }
+
+    if (last_user_msg) {
+      target = log_inner.querySelector(
+        '[data-message-id="' + last_user_msg.id + '"]'
+      );
+      if (target) {
+        target.scrollIntoView({ block: "start" });
+        return;
+      }
+    }
+
+    // Fallback: scroll to bottom if no user message found
+    scrollToBottom(log_inner.parentNode);
+  }
+
   function findMessageById(message_list, message_id) {
     var i,
       current_id;
@@ -220,7 +258,8 @@
         }
       }
       gadget.max_message_id = max_id;
-      renderMessages(gadget);
+      renderMessages(gadget, { scrollToBottom: false });
+      scrollLastUserMessageToTop(gadget);
     })
 
     // Clear the current session
