@@ -482,9 +482,80 @@
       function streamChatResponse(session_id, user_text) {
         var accumulated = "",
           assistant_message_id = null,
+          assistant_message_promise = null,
           buffer = "",
+          pending_content = "",
+          raf_scheduled = false,
+          chunk_counter = 0,
           decoder = new window.TextDecoder(),
-          url = "/chat/" + session_id;
+          url = "/chat/" + session_id,
+          ui_task =
+            (RSVP.resolve && RSVP.resolve()) ||
+            new RSVP.Promise(function (resolve) {
+              resolve();
+            });
+
+        function queueTask(fn) {
+          ui_task = ui_task.then(
+            function () {
+              return fn();
+            },
+            function () {
+              return fn();
+            }
+          );
+          return ui_task;
+        }
+
+        function ensureAssistantMessage() {
+          if (assistant_message_id !== null) {
+            return queueTask(function () {
+              return assistant_message_id;
+            });
+          }
+          if (assistant_message_promise) {
+            return assistant_message_promise;
+          }
+          assistant_message_promise = queueTask(function () {
+            return chat_gadget.appendAssistantMessage("").then(function (id) {
+              assistant_message_id = id;
+              return id;
+            });
+          });
+          return assistant_message_promise;
+        }
+
+        function applyAssistantContent(content) {
+          return ensureAssistantMessage().then(function (message_id) {
+            return queueTask(function () {
+              return chat_gadget.updateMessageContent(
+                message_id,
+                content || ""
+              );
+            });
+          });
+        }
+
+        function requestAssistantPaint(force) {
+          var raf =
+            window.requestAnimationFrame ||
+            function (cb) {
+              return window.setTimeout(cb, 0);
+            };
+          if (force) {
+            raf_scheduled = false;
+            applyAssistantContent(pending_content);
+            return;
+          }
+          if (raf_scheduled) {
+            return;
+          }
+          raf_scheduled = true;
+          raf(function () {
+            raf_scheduled = false;
+            applyAssistantContent(pending_content);
+          });
+        }
 
         abortActiveStream();
         setPromptBusy(true);
@@ -502,7 +573,14 @@
           expect_stream: true
         })
           .then(function (response) {
-            var reader = response.body && response.body.getReader();
+            var reader = response.body && response.body.getReader(),
+              header_obj = response.headers,
+              content_type =
+                (header_obj && header_obj.get
+                  ? header_obj.get("content-type")
+                  : "") || "",
+              is_event_stream =
+                content_type.toLowerCase().indexOf("text/event-stream") !== -1;
             if (!reader) {
               throw new Error("Unable to start streaming response.");
             }
@@ -512,91 +590,145 @@
               }
             };
 
-            function ensureAssistantMessage() {
-              if (!assistant_message_id && chat_gadget &&
-                  chat_gadget.appendAssistantMessage) {
-                assistant_message_id = chat_gadget.appendAssistantMessage("");
-              }
-            }
-
-            function updateAssistantContent(content) {
-              if (
-                assistant_message_id &&
-                chat_gadget &&
-                chat_gadget.updateMessageContent
-              ) {
-                chat_gadget.updateMessageContent(assistant_message_id, content);
-              }
-            }
-
             function handlePayload(payload) {
               if (!payload || !payload.type) {
                 return;
               }
               if (payload.type === "token") {
-                ensureAssistantMessage();
                 accumulated += payload.data || "";
-                updateAssistantContent(accumulated);
+                pending_content = accumulated;
+                requestAssistantPaint(false);
               } else if (payload.type === "final") {
-                ensureAssistantMessage();
                 if (payload.data && payload.data.answer) {
                   accumulated = payload.data.answer;
                 }
-                updateAssistantContent(accumulated);
+                pending_content = accumulated;
+                requestAssistantPaint(true);
               } else if (payload.type === "error") {
-                ensureAssistantMessage();
                 accumulated =
                   accumulated || "Sorry, I could not fetch a response.";
-                updateAssistantContent(accumulated);
+                pending_content = accumulated;
+                requestAssistantPaint(true);
               }
             }
 
-            function processBuffer() {
-              var parts = buffer.split("\n\n"),
-                i,
-                chunk,
-                lines,
-                data_lines,
-                j,
+            function processBuffer(flush_remainder) {
+              var delimiter_index,
+                delimiter_length,
+                record,
                 line,
-                json_text;
-              if (parts.length === 1) {
-                return;
-              }
-              for (i = 0; i < parts.length - 1; i += 1) {
-                chunk = parts[i].trim();
-                if (!chunk) {
-                  continue;
+                newline_index,
+                raw_line,
+                trimmed_line;
+
+              function dispatchJsonText(text) {
+                var payload_text = text || "";
+                if (!payload_text) {
+                  return;
                 }
-                lines = chunk.split("\n");
-                data_lines = [];
-                for (j = 0; j < lines.length; j += 1) {
-                  line = lines[j];
-                  if (line.indexOf("data:") === 0) {
-                    data_lines.push(line.slice(5).trim());
+                if (payload_text.indexOf("data:") === 0) {
+                  payload_text = payload_text.slice(5);
+                  if (payload_text.charAt(0) === " ") {
+                    payload_text = payload_text.slice(1);
                   }
                 }
-                if (data_lines.length === 0) {
-                  continue;
+                payload_text = payload_text.trim();
+                if (!payload_text) {
+                  return;
                 }
-                json_text = data_lines.join("\n");
                 try {
-                  handlePayload(window.JSON.parse(json_text));
+                  handlePayload(window.JSON.parse(payload_text));
                 } catch (ignore) {
-                  continue;
+                  return;
                 }
               }
-              buffer = parts[parts.length - 1];
+
+              function consumeRecord(text) {
+                var local_lines = text.split(/\r?\n/),
+                  local_data_lines = [],
+                  j,
+                  current_line,
+                  payload_text;
+                for (j = 0; j < local_lines.length; j += 1) {
+                  current_line = local_lines[j];
+                  if (current_line.indexOf("data:") === 0) {
+                    payload_text = current_line.slice(5);
+                    if (payload_text.charAt(0) === " ") {
+                      payload_text = payload_text.slice(1);
+                    }
+                    if (payload_text) {
+                      local_data_lines.push(payload_text);
+                    }
+                  }
+                }
+                if (local_data_lines.length === 0) {
+                  return;
+                }
+                try {
+                  handlePayload(
+                    window.JSON.parse(local_data_lines.join("\n"))
+                  );
+                } catch (ignore) {
+                  return;
+                }
+              }
+
+              if (is_event_stream) {
+                while (true) {
+                  delimiter_index = buffer.indexOf("\n\n");
+                  delimiter_length = 2;
+                  line = buffer.indexOf("\r\n\r\n");
+                  if (
+                    line !== -1 &&
+                    (delimiter_index === -1 || line < delimiter_index)
+                  ) {
+                    delimiter_index = line;
+                    delimiter_length = 4;
+                  }
+                  if (delimiter_index === -1) {
+                    break;
+                  }
+                  record = buffer.slice(0, delimiter_index);
+                  buffer = buffer.slice(delimiter_index + delimiter_length);
+                  consumeRecord(record);
+                }
+                if (flush_remainder && buffer) {
+                  consumeRecord(buffer);
+                  buffer = "";
+                }
+                return;
+              }
+
+              while ((newline_index = buffer.indexOf("\n")) !== -1) {
+                raw_line = buffer.slice(0, newline_index);
+                buffer = buffer.slice(newline_index + 1);
+                trimmed_line = raw_line.replace(/\r$/, "").trim();
+                if (!trimmed_line) {
+                  continue;
+                }
+                dispatchJsonText(trimmed_line);
+              }
+              if (flush_remainder && buffer) {
+                trimmed_line = buffer.replace(/\r$/, "").trim();
+                if (trimmed_line) {
+                  dispatchJsonText(trimmed_line);
+                }
+                buffer = "";
+              }
             }
 
             function read() {
               return reader.read().then(function (result) {
                 if (result.done) {
-                  processBuffer();
+                  processBuffer(true);
                   return;
                 }
                 buffer += decoder.decode(result.value, { stream: true });
-                processBuffer();
+                processBuffer(false);
+                chunk_counter += 1;
+                if (chunk_counter % 8 === 0) {
+                  return RSVP.delay(0).then(read);
+                }
                 return read();
               });
             }
@@ -609,15 +741,8 @@
           .catch(function (error) {
             var fallback_message =
               "Sorry, I couldn't finish that request. Please try again.";
-            if (!assistant_message_id && chat_gadget &&
-                chat_gadget.appendAssistantMessage) {
-              assistant_message_id =
-                chat_gadget.appendAssistantMessage(fallback_message);
-            } else if (assistant_message_id) {
-              updateAssistantContent(
-                accumulated || fallback_message
-              );
-            }
+            pending_content = accumulated || fallback_message;
+            requestAssistantPaint(true);
             return finalizeStream()
               .catch(function () {
                 return;

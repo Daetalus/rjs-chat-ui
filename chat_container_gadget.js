@@ -134,6 +134,35 @@
     }
   }
 
+  function updateBubbleText(gadget, message_id, content) {
+    var element,
+      log_inner,
+      row,
+      bubble;
+
+    if (!gadget || !gadget.element) {
+      return false;
+    }
+    element = gadget.element;
+    log_inner = element.querySelector('[data-role="log-inner"]');
+    if (!log_inner) {
+      return false;
+    }
+    row = log_inner.querySelector(
+      '[data-message-id="' + message_id + '"]'
+    );
+    if (!row) {
+      return false;
+    }
+    bubble = row.querySelector(".message-bubble");
+    if (!bubble) {
+      return false;
+    }
+    bubble.textContent = content || "";
+    scrollToBottom(log_inner.parentNode);
+    return true;
+  }
+
   ////////////////////////////////////////////////////////////////////////////
   // Gadget definition
   ////////////////////////////////////////////////////////////////////////////
@@ -242,18 +271,16 @@
     })
 
     .declareMethod("updateMessageContent", function (message_id, content) {
-      var message = findMessageById(this.messages, message_id),
-        bubble;
+      var gadget = this,
+        message = findMessageById(gadget.messages, message_id);
       if (!message) {
         return;
       }
       message.content = content || "";
-      bubble = this.element.querySelector(
-        '[data-message-id="' + message_id + '"] .message-bubble'
-      );
-      if (bubble) {
-        bubble.textContent = message.content;
+      if (updateBubbleText(gadget, message_id, message.content)) {
+        return;
       }
+      renderMessages(gadget, { scrollToBottom: false });
     })
 
     .declareMethod("setTheme", function (is_dark) {
