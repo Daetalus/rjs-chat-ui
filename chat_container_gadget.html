@@ -7,6 +7,8 @@
     <!-- 每个 gadget 自己带上依赖 -->
     <script src="rsvp.js"></script>
     <script src="renderjs.js"></script>
+    <script src="markdown-it.min.js"></script>
+    <script src="dompurify.min.js"></script>
     <script src="chat_container_gadget.js"></script>
 
 
@@ -133,6 +135,55 @@
 
       .message-row--assistant .message-content-wrapper {
         margin-left: 4px;
+      }
+
+      .message-bubble--assistant .markdown-body {
+        font-size: 1.3rem;
+        line-height: 1.5;
+        color: inherit;
+        margin: 0;
+      }
+
+      .message-bubble--assistant .markdown-body h1,
+      .message-bubble--assistant .markdown-body h2,
+      .message-bubble--assistant .markdown-body h3,
+      .message-bubble--assistant .markdown-body h4,
+      .message-bubble--assistant .markdown-body h5,
+      .message-bubble--assistant .markdown-body h6 {
+        font-weight: 600;
+        line-height: 1.25;
+        margin: 1.1rem 0 0.8rem;
+      }
+
+      .message-bubble--assistant .markdown-body p {
+        margin: 0 0 0.7rem;
+      }
+
+      .message-bubble--assistant .markdown-body ul,
+      .message-bubble--assistant .markdown-body ol {
+        margin: 0.4rem 0 0.7rem 1.3rem;
+        padding: 0;
+      }
+
+      .message-bubble--assistant .markdown-body li {
+        margin-bottom: 0.3rem;
+      }
+
+      .message-bubble--assistant .markdown-body pre {
+        background: rgba(15, 23, 42, 0.08);
+        color: inherit;
+        border-radius: 8px;
+        padding: 10px 12px;
+        overflow: auto;
+        margin: 0.5rem 0 0.8rem;
+        font-size: 0.95rem;
+      }
+
+      .message-bubble--assistant .markdown-body code {
+        background: rgba(15, 23, 42, 0.06);
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 0.92rem;
       }
 
       .message-row--streaming {

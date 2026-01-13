@@ -99,6 +99,8 @@
     scrollToBottom(log_inner.parentNode);
   }
 
+  var markdown_renderer = null;
+
   function findMessageById(message_list, message_id) {
     var i,
       current_id;
@@ -115,6 +117,51 @@
       }
     }
     return null;
+  }
+
+  function ensureMarkdownRenderer() {
+    if (!markdown_renderer && window.markdownit) {
+      try {
+        markdown_renderer = window.markdownit({
+          html: false,
+          linkify: true,
+          breaks: true
+        });
+      } catch (ignore) {
+        markdown_renderer = null;
+      }
+    }
+    return markdown_renderer;
+  }
+
+  function escapeHTML(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderAssistantContent(text) {
+    var renderer = ensureMarkdownRenderer(),
+      source = text || "",
+      html;
+
+    if (renderer) {
+      try {
+        html = renderer.render(source);
+      } catch (ignore) {
+        html = null;
+      }
+    }
+    if (!html) {
+      html = escapeHTML(source).replace(/\r?\n/g, "<br>");
+    }
+    if (window.DOMPurify && window.DOMPurify.sanitize) {
+      html = window.DOMPurify.sanitize(html);
+    }
+    return '<div class="markdown-body">' + html + '</div>';
   }
 
   function renderMessages(gadget, options) {
@@ -165,7 +212,13 @@
         (is_assistant
           ? "message-bubble--assistant"
           : "message-bubble--user");
-      bubble_element.textContent = message.content || "";
+      if (is_assistant) {
+        bubble_element.innerHTML = renderAssistantContent(
+          message.content || ""
+        );
+      } else {
+        bubble_element.textContent = message.content || "";
+      }
 
       content_wrapper.appendChild(bubble_element);
       row_element.appendChild(content_wrapper);
@@ -177,13 +230,13 @@
     }
   }
 
-  function updateBubbleText(gadget, message_id, content) {
+  function updateBubbleContent(gadget, message) {
     var element,
       log_inner,
       row,
       bubble;
 
-    if (!gadget || !gadget.element) {
+    if (!gadget || !gadget.element || !message) {
       return false;
     }
     element = gadget.element;
@@ -192,7 +245,7 @@
       return false;
     }
     row = log_inner.querySelector(
-      '[data-message-id="' + message_id + '"]'
+      '[data-message-id="' + message.id + '"]'
     );
     if (!row) {
       return false;
@@ -201,7 +254,11 @@
     if (!bubble) {
       return false;
     }
-    bubble.textContent = content || "";
+    if (message.role === "assistant") {
+      bubble.innerHTML = renderAssistantContent(message.content || "");
+    } else {
+      bubble.textContent = message.content || "";
+    }
     scrollToBottom(log_inner.parentNode);
     return true;
   }
@@ -328,7 +385,7 @@
         return;
       }
       message.content = content || "";
-      if (updateBubbleText(gadget, message_id, message.content)) {
+      if (updateBubbleContent(gadget, message)) {
         return;
       }
       renderMessages(gadget, { scrollToBottom: false });
