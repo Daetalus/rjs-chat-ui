@@ -212,6 +212,10 @@
 
       item = document.createElement("div");
       item.className = "sidebar-session-item";
+      item.setAttribute(
+        "data-menu-open",
+        gadget.open_menu_session_id === session.id ? "true" : "false"
+      );
 
       button = document.createElement("button");
       button.type = "button";
@@ -244,8 +248,10 @@
       menu.setAttribute("data-session-id", session.id);
       if (gadget.open_menu_session_id === session.id) {
         menu.setAttribute("data-open", "true");
+        item.setAttribute("data-menu-open", "true");
       } else {
         menu.setAttribute("data-open", "false");
+        item.setAttribute("data-menu-open", "false");
       }
 
       rename_btn = document.createElement("button");
