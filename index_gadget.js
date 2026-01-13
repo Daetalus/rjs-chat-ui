@@ -932,6 +932,30 @@
           });
       }
 
+      function handleRegisterSubmit(credential) {
+        var username = credential && credential.username,
+          password = credential && credential.password;
+
+        if (!username || !password) {
+          return RSVP.reject(
+            new Error("Username and password are required.")
+          );
+        }
+
+        return apiFetchJSON(gadget, "/register", {
+          method: "POST",
+          body: window.JSON.stringify({
+            username: username,
+            password: password
+          })
+        }).then(function () {
+          return handleAuthSubmit({
+            username: username,
+            password: password
+          });
+        });
+      }
+
       return gadget.getDeclaredGadget("sidebar")
         .push(function (sg) {
           sidebar_gadget = sg;
@@ -986,6 +1010,9 @@
           gadget.auth_gadget = ag;
           if (auth_gadget.setLoginHandler) {
             auth_gadget.setLoginHandler(handleAuthSubmit);
+          }
+          if (auth_gadget.setRegisterHandler) {
+            auth_gadget.setRegisterHandler(handleRegisterSubmit);
           }
           if (auth_gadget.focus) {
             auth_gadget.focus();
