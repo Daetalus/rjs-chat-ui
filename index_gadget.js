@@ -5,6 +5,7 @@
 
   var DEFAULT_SESSION_TITLE = "New chat",
     TOKEN_STORAGE_KEY = "rag_ui_token",
+    USERNAME_STORAGE_KEY = "rag_ui_username",
     API_BASE_URL =
       window.APP_API_BASE_URL ||
       window.API_BASE_URL ||
@@ -55,6 +56,26 @@
     }
   }
 
+  function getStoredUsername() {
+    try {
+      return window.localStorage.getItem(USERNAME_STORAGE_KEY);
+    } catch (ignore) {
+      return null;
+    }
+  }
+
+  function storeUsername(value) {
+    try {
+      if (value) {
+        window.localStorage.setItem(USERNAME_STORAGE_KEY, value);
+      } else {
+        window.localStorage.removeItem(USERNAME_STORAGE_KEY);
+      }
+    } catch (ignore) {
+      return;
+    }
+  }
+
   function getSessionIdFromURL() {
     try {
       var url = new URL(window.location.href);
@@ -86,6 +107,15 @@
       result.push(toChatMessage(list[i], i));
     }
     return result;
+  }
+
+  function updateSidebarProfile(gadget) {
+    if (gadget.sidebar_gadget && gadget.sidebar_gadget.setUserProfile) {
+      gadget.sidebar_gadget.setUserProfile({
+        name: gadget.current_username || "Guest user",
+        username: gadget.current_username || ""
+      });
+    }
   }
 
   function findSessionById(list, session_id) {
@@ -143,15 +173,18 @@
 
   function handleUnauthorized(gadget) {
     setAuthToken(gadget, null);
+    storeUsername(null);
     gadget.is_authenticated = false;
     gadget.active_session_id = null;
     gadget.session_list = [];
     gadget.session_cache = {};
     gadget.session_started_map = {};
     gadget.derived_title_map = {};
+    gadget.current_username = null;
     setMainViewMode(gadget, "chat");
     setSessionIdInURL(null);
     updateAuthState(gadget, "locked");
+    updateSidebarProfile(gadget);
     if (gadget.sidebar_gadget && gadget.sidebar_gadget.setSessions) {
       gadget.sidebar_gadget.setSessions([]);
     }
@@ -304,6 +337,7 @@
       gadget.pending_session_id = getSessionIdFromURL();
       gadget.active_stream_controller = null;
       gadget.is_streaming = false;
+      gadget.current_username = getStoredUsername();
 
       gadget.derived_title_map = {};
       gadget.session_started_map = {};
@@ -926,6 +960,9 @@
               throw new Error("Invalid token response.");
             }
             setAuthToken(gadget, data.access_token);
+            storeUsername(username);
+            gadget.current_username = username;
+            updateSidebarProfile(gadget);
             gadget.is_authenticated = true;
             updateAuthState(gadget, "authenticated");
             return loadSessions(true);
@@ -960,6 +997,7 @@
         .push(function (sg) {
           sidebar_gadget = sg;
           gadget.sidebar_gadget = sg;
+          updateSidebarProfile(gadget);
           return gadget.getDeclaredGadget("chat");
         })
         .push(function (cg) {

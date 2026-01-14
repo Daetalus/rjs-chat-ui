@@ -7,7 +7,8 @@
   var SIDEBAR_COOKIE_NAME = "sidebar_state",
     SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7,
     KEYBOARD_SHORTCUT = "b",
-    THEME_STORAGE_KEY = "rag-ui-theme";
+    THEME_STORAGE_KEY = "rag-ui-theme",
+    MENU_VIEWPORT_MARGIN = 16;
 
   ////////////////////////////////////////////////////////////////////////////
   // Helpers
@@ -73,16 +74,15 @@
   }
 
   function updateThemeSwitch(gadget) {
-    var toggle = gadget.element.querySelector('[data-role="theme-switch"]');
-    if (!toggle) {
-      return;
+    var label = gadget.element.querySelector('[data-role="theme-menu-label"]'),
+      button = gadget.element.querySelector('[data-role="theme-menu-item"]');
+    if (label) {
+      label.textContent = gadget.is_dark_mode
+        ? "Switch to light mode"
+        : "Switch to dark mode";
     }
-    if (gadget.is_dark_mode) {
-      toggle.setAttribute("data-checked", "true");
-      toggle.setAttribute("aria-checked", "true");
-    } else {
-      toggle.setAttribute("data-checked", "false");
-      toggle.setAttribute("aria-checked", "false");
+    if (button) {
+      button.setAttribute("data-theme", gadget.is_dark_mode ? "dark" : "light");
     }
   }
 
@@ -123,6 +123,175 @@
   function setError(gadget, message) {
     gadget.sessions_error = message || "";
     renderSessions(gadget);
+  }
+
+  function computeInitials(name) {
+    var trimmed = (name || "").trim(),
+      parts,
+      first,
+      second;
+    if (!trimmed) {
+      return "U";
+    }
+    parts = trimmed.split(/\s+/);
+    first = parts[0].charAt(0).toUpperCase();
+    second = "";
+    if (parts.length > 1 && parts[1]) {
+      second = parts[1].charAt(0).toUpperCase();
+    } else if (parts[0].length > 1) {
+      second = parts[0].charAt(1).toUpperCase();
+    }
+    return (first + second).trim() || first;
+  }
+
+  function updateAccountDisplay(gadget) {
+    var container = gadget.element.querySelector('[data-role="account"]'),
+      avatar = gadget.element.querySelector('[data-role="account-avatar"]'),
+      avatar_menu = gadget.element.querySelector(
+        '[data-role="account-avatar-menu"]'
+      ),
+      name_el = gadget.element.querySelector('[data-role="account-name"]'),
+      name_menu = gadget.element.querySelector('[data-role="account-name-menu"]'),
+      user_el = gadget.element.querySelector('[data-role="account-username"]'),
+      initials = computeInitials(gadget.account_name || gadget.account_username),
+      display_name = gadget.account_name || "Guest user",
+      username = gadget.account_username || "";
+
+    if (avatar) {
+      avatar.textContent = initials;
+    }
+    if (avatar_menu) {
+      avatar_menu.textContent = initials;
+    }
+    if (name_el) {
+      name_el.textContent = display_name;
+    }
+    if (name_menu) {
+      name_menu.textContent = display_name;
+    }
+    if (user_el) {
+      user_el.textContent = username ? "@" + username : "";
+    }
+    if (container) {
+      container.setAttribute(
+        "data-open",
+        gadget.account_menu_open ? "true" : "false"
+      );
+    }
+    alignAccountMenu(gadget);
+  }
+
+  function clearAccountMenuPosition(menu) {
+    if (!menu) {
+      return;
+    }
+    menu.removeAttribute("data-floating");
+    menu.style.left = "";
+    menu.style.top = "";
+    menu.style.opacity = "";
+  }
+
+  function alignAccountMenu(gadget) {
+    var menu = gadget.element.querySelector('[data-role="account-menu"]'),
+      trigger = gadget.element.querySelector('[data-action="account-toggle"]'),
+      collapsed = !gadget.is_mobile && gadget.state === "collapsed",
+      margin = MENU_VIEWPORT_MARGIN,
+      raf = window.requestAnimationFrame || function (cb) {
+        window.setTimeout(cb, 0);
+      };
+
+    if (!menu || !trigger) {
+      return;
+    }
+
+    if (!gadget.account_menu_open || !collapsed) {
+      clearAccountMenuPosition(menu);
+      return;
+    }
+
+    menu.setAttribute("data-floating", "true");
+    menu.style.opacity = "0";
+    menu.style.left = "0px";
+    menu.style.top = "0px";
+
+    raf(function () {
+      var rect = trigger.getBoundingClientRect(),
+        menu_rect = menu.getBoundingClientRect(),
+        menu_width = menu_rect && menu_rect.width ? menu_rect.width : menu.offsetWidth,
+        menu_height =
+          menu_rect && menu_rect.height ? menu_rect.height : menu.offsetHeight,
+        viewport_width = window.innerWidth || document.documentElement.clientWidth,
+        viewport_height =
+          window.innerHeight || document.documentElement.clientHeight,
+        left,
+        top;
+
+      if (!menu_width || menu_width < 80) {
+        menu_width = 240;
+      }
+      if (!menu_height || menu_height < 80) {
+        menu_height = 180;
+      }
+
+      console.log("Rect right:");
+      console.log(rect.right);
+      console.log(margin)
+      left = rect.right + margin;
+      top = rect.top - menu_height - margin;
+
+      if (top < margin) {
+        top = Math.min(
+          viewport_height - menu_height - margin,
+          rect.bottom + margin
+        );
+      }
+      if (left + menu_width > viewport_width - margin) {
+        left = viewport_width - menu_width - margin;
+      }
+      if (left < margin) {
+        left = margin;
+      }
+      console.log(left)
+
+      menu.style.left = String(Math.round(left)) + "px";
+      menu.style.top = String(Math.round(top)) + "px";
+      menu.style.opacity = "";
+    });
+  }
+
+  function setAccountMenuOpen(gadget, flag) {
+    gadget.account_menu_open = Boolean(flag);
+    updateAccountDisplay(gadget);
+    alignAccountMenu(gadget);
+  }
+
+  function installGlobalAccountClose(gadget) {
+    if (gadget.account_global_listener) {
+      return;
+    }
+    gadget.account_global_listener = rJS.loopEventListener(
+      window.document,
+      "click",
+      true,
+      function (event) {
+        var target = event.target;
+        if (!gadget.account_menu_open) {
+          return;
+        }
+        if (
+          target &&
+          target.closest &&
+          (target.closest(".sidebar-account") ||
+            target.closest('[data-role="account-menu"]'))
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        setAccountMenuOpen(gadget, false);
+      },
+      false
+    );
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -304,6 +473,7 @@
     } else {
       root.classList.remove("sidebar-root--mobile-open");
     }
+    alignAccountMenu(gadget);
   }
 
   function toggleSidebar(gadget) {
@@ -355,11 +525,16 @@
       gadget.sessions_error = "";
       gadget.is_loading_sessions = false;
       gadget.is_dark_mode = false;
+      gadget.account_name = "Guest user";
+      gadget.account_username = "";
+      gadget.account_menu_open = false;
 
       initializeTheme(gadget);
       applyState(gadget);
       renderSessions(gadget);
       notifySessionChange(gadget);
+      updateAccountDisplay(gadget);
+      installGlobalAccountClose(gadget);
 
       root = gadget.element.querySelector('[data-role="sidebar-root"]');
       if (root) {
@@ -379,6 +554,12 @@
             ) {
               gadget.open_menu_session_id = null;
               renderSessions(gadget);
+            }
+            if (
+              gadget.account_menu_open &&
+              !target.closest(".sidebar-account")
+            ) {
+              setAccountMenuOpen(gadget, false);
             }
           },
           false
@@ -431,6 +612,13 @@
 
     .declareMethod("setSessionDeleteHandler", function (handler) {
       this.session_delete_handler = handler;
+    })
+
+    .declareMethod("setUserProfile", function (profile) {
+      this.account_name =
+        (profile && (profile.name || profile.username)) || "Guest user";
+      this.account_username = (profile && profile.username) || "";
+      updateAccountDisplay(this);
     })
 
     .declareMethod("setThemeChangeHandler", function (handler) {
@@ -544,6 +732,19 @@
           return;
         }
 
+        if (action === "account-toggle") {
+          evt.preventDefault();
+          setAccountMenuOpen(gadget, !gadget.account_menu_open);
+          return;
+        }
+
+        if (action === "account-settings") {
+          evt.preventDefault();
+          setAccountMenuOpen(gadget, false);
+          window.alert("Settings are coming soon.");
+          return;
+        }
+
         if (action === "toggle-theme") {
           evt.preventDefault();
           gadget.is_dark_mode = !gadget.is_dark_mode;
@@ -555,6 +756,7 @@
 
         if (action === "sign-out") {
           evt.preventDefault();
+          setAccountMenuOpen(gadget, false);
           if (gadget.logout_handler) {
             gadget.logout_handler();
           } else {
