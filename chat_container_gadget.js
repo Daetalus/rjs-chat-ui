@@ -99,7 +99,9 @@
     scrollToBottom(log_inner.parentNode);
   }
 
-  var markdown_renderer = null;
+  var markdown_renderer = null,
+    STREAMING_TIP_HTML =
+      '<div class="assistant-stream-tip" data-visible="true">Searching documents...</div>';
 
   function findMessageById(message_list, message_id) {
     var i,
@@ -213,9 +215,13 @@
           ? "message-bubble--assistant"
           : "message-bubble--user");
       if (is_assistant) {
-        bubble_element.innerHTML = renderAssistantContent(
-          message.content || ""
-        );
+        if (message.is_streaming && !message.content) {
+          bubble_element.innerHTML = STREAMING_TIP_HTML;
+        } else {
+          bubble_element.innerHTML = renderAssistantContent(
+            message.content || ""
+          );
+        }
       } else {
         bubble_element.textContent = message.content || "";
       }
@@ -255,7 +261,11 @@
       return false;
     }
     if (message.role === "assistant") {
-      bubble.innerHTML = renderAssistantContent(message.content || "");
+      if (message.is_streaming && !message.content) {
+        bubble.innerHTML = STREAMING_TIP_HTML;
+      } else {
+        bubble.innerHTML = renderAssistantContent(message.content || "");
+      }
     } else {
       bubble.textContent = message.content || "";
     }
