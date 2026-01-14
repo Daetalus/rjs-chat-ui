@@ -62,6 +62,7 @@
     }
 
     if (button) {
+      button.setAttribute("data-state", gadget.is_busy ? "busy" : "idle");
       if (disabled) {
         button.setAttribute("disabled", "disabled");
         button.setAttribute("aria-disabled", "true");

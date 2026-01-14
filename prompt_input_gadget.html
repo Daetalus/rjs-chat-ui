@@ -257,6 +257,46 @@
         display: block;
       }
 
+      .prompt-send-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .prompt-send-icon--dots {
+        display: none;
+        gap: 4px;
+      }
+
+      .prompt-send-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.6;
+      }
+
+      .prompt-icon-button--primary[data-state="busy"] {
+        background: rgba(148, 163, 184, 0.35);
+        border-color: rgba(148, 163, 184, 0.35);
+        color: rgba(15, 23, 42, 0.6);
+        box-shadow: none;
+      }
+
+      :root.dark .prompt-icon-button--primary[data-state="busy"] {
+        background: rgba(148, 163, 184, 0.35);
+        color: rgba(248, 250, 252, 0.85);
+      }
+
+      .prompt-icon-button--primary[data-state="busy"] .prompt-send-icon--arrow {
+        display: none;
+      }
+
+      .prompt-icon-button--primary[data-state="busy"]
+        .prompt-send-icon--dots {
+        display: inline-flex;
+      }
+
       .sr-only {
         position: absolute;
         width: 1px;
@@ -390,8 +430,12 @@
                 data-role="submit-button"
                 disabled
                 aria-disabled="true"
+                data-state="idle"
               >
-                <span aria-hidden="true">
+                <span
+                  aria-hidden="true"
+                  class="prompt-send-icon prompt-send-icon--arrow"
+                >
                   <svg
                     class="prompt-icon"
                     viewBox="0 0 24 24"
@@ -404,6 +448,14 @@
                     <path d="M5 12h13" />
                     <path d="m12 5 7 7-7 7" />
                   </svg>
+                </span>
+                <span
+                  aria-hidden="true"
+                  class="prompt-send-icon prompt-send-icon--dots"
+                >
+                  <span class="prompt-send-dot"></span>
+                  <span class="prompt-send-dot"></span>
+                  <span class="prompt-send-dot"></span>
                 </span>
                 <span class="sr-only">Send prompt</span>
               </button>
