@@ -35,6 +35,15 @@
         display: flex;
         flex-direction: column;
         overflow: hidden; /* 滚动交给内部容器 */
+        --app-header-bg: #ffffff;
+        --app-header-border: rgba(15, 23, 42, 0.08);
+        --app-header-foreground: #0f172a;
+      }
+
+      body.dark {
+        --app-header-bg: #0b1120;
+        --app-header-border: rgba(248, 250, 252, 0.15);
+        --app-header-foreground: #e2e8f0;
       }
 
       body[data-auth-state="locked"] .app-shell {
@@ -69,6 +78,37 @@
 
         display: flex;
         flex-direction: column;
+      }
+
+      .mobile-header {
+        display: none;
+      }
+
+      @media (max-width: 1024px) {
+        .mobile-header {
+          display: block;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          background: var(--app-header-bg);
+          border-bottom: 1px solid var(--app-header-border);
+          color: var(--app-header-foreground);
+        }
+
+        .mobile-header-inner {
+          padding: 0 16px;
+        }
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
       }
 
       /* 整个聊天布局（上方滚动 chat，下方固定 prompt 或欢迎页） */
@@ -168,7 +208,7 @@
     </style>
   </head>
   <body data-auth-state="locked">
-    <div class="app-shell">
+      <div class="app-shell">
       <!-- 左侧 AppSidebar gadget -->
       <div
         data-gadget-url="app_sidebar_gadget.html"
@@ -177,7 +217,17 @@
       ></div>
 
       <!-- 右侧主内容：Chat + Prompt -->
-      <div class="app-main">
+      <div class="app-main" data-role="app-main">
+        <div class="mobile-header" data-role="mobile-header-container">
+          <div class="mobile-header-inner">
+            <div
+              data-gadget-url="mobile_header_gadget.html"
+              data-gadget-scope="header"
+              data-gadget-sandbox="public"
+            ></div>
+          </div>
+        </div>
+
         <div class="chat-layout" data-role="chat-layout" data-mode="chat">
           <!-- 上方滚动区域：Chat Container -->
           <div class="chat-scroll">

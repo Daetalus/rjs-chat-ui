@@ -110,6 +110,16 @@
     }
   }
 
+  function notifySidebarVisibility(gadget) {
+    if (gadget.sidebar_visibility_handler) {
+      gadget.sidebar_visibility_handler({
+        is_visible: !gadget.is_mobile || gadget.mobile_open,
+        is_mobile: gadget.is_mobile,
+        mobile_open: gadget.mobile_open
+      });
+    }
+  }
+
   function findSessionById(gadget, id) {
     var i;
     for (i = 0; i < gadget.sessions.length; i += 1) {
@@ -456,7 +466,9 @@
       return;
     }
 
-    if (gadget.state === "expanded") {
+    if (gadget.is_mobile) {
+      root.setAttribute("data-state", "expanded");
+    } else if (gadget.state === "expanded") {
       root.setAttribute("data-state", "expanded");
     } else {
       root.setAttribute("data-state", "collapsed");
@@ -474,6 +486,7 @@
       root.classList.remove("sidebar-root--mobile-open");
     }
     alignAccountMenu(gadget);
+    notifySidebarVisibility(gadget);
   }
 
   function toggleSidebar(gadget) {
@@ -521,6 +534,7 @@
       gadget.logout_handler = null;
       gadget.session_rename_handler = null;
       gadget.session_delete_handler = null;
+      gadget.sidebar_visibility_handler = null;
 
       gadget.sessions_error = "";
       gadget.is_loading_sessions = false;
@@ -626,6 +640,11 @@
       notifyThemeChange(this);
     })
 
+    .declareMethod("setSidebarVisibilityHandler", function (handler) {
+      this.sidebar_visibility_handler = handler;
+      notifySidebarVisibility(this);
+    })
+
     .declareMethod("getActiveSessionId", function () {
       return this.active_session_id;
     })
@@ -683,6 +702,14 @@
 
     .declareMethod("toggleSidebar", function () {
       toggleSidebar(this);
+    })
+
+    .declareMethod("refreshResponsiveState", function () {
+      this.is_mobile = isMobileWidth();
+      if (!this.is_mobile) {
+        this.mobile_open = false;
+      }
+      applyState(this);
     })
 
     .onEvent(

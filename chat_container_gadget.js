@@ -15,6 +15,45 @@
     container.scrollTop = container.scrollHeight;
   }
 
+  function getScrollContainer(element) {
+    var node = element;
+    while (node && node.parentNode) {
+      if (
+        node.classList &&
+        node.classList.contains("chat-scroll")
+      ) {
+        return node;
+      }
+      node = node.parentNode;
+    }
+    return (
+      window.document.scrollingElement ||
+      window.document.documentElement ||
+      window.document.body
+    );
+  }
+
+  function scrollElementToTop(container, target, smooth) {
+    var container_rect,
+      target_rect,
+      delta,
+      new_top;
+    if (!container || !target) {
+      return;
+    }
+    container_rect = container.getBoundingClientRect();
+    target_rect = target.getBoundingClientRect();
+    delta = target_rect.top - container_rect.top;
+    new_top = container.scrollTop + delta;
+    if (smooth && container.scrollTo) {
+      try {
+        container.scrollTo({ top: new_top, behavior: "smooth" });
+        return;
+      } catch (ignore) {}
+    }
+    container.scrollTop = new_top;
+  }
+
   function scrollMessageToTop(gadget, message_id) {
     if (!gadget || !message_id) {
       return RSVP.resolve();
@@ -23,7 +62,8 @@
       var element = gadget.element,
         log_inner,
         selector,
-        target;
+        target,
+        container;
 
       if (!element) {
         resolve();
@@ -38,10 +78,12 @@
 
       selector = '[data-message-id="' + message_id + '"]';
       target = log_inner.querySelector(selector);
-      if (!target || !target.scrollIntoView) {
+      if (!target) {
         resolve();
         return;
       }
+
+      container = getScrollContainer(element);
 
       (window.requestAnimationFrame ||
         function (cb) {
@@ -49,11 +91,7 @@
             cb();
           });
         })(function () {
-        try {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
-        } catch (ignore) {
-          target.scrollIntoView();
-        }
+        scrollElementToTop(container, target, true);
         RSVP.delay(350).then(function () {
           resolve();
         });
@@ -90,7 +128,11 @@
         '[data-message-id="' + last_user_msg.id + '"]'
       );
       if (target) {
-        target.scrollIntoView({ block: "start" });
+        scrollElementToTop(
+          getScrollContainer(element),
+          target,
+          false
+        );
         return;
       }
     }

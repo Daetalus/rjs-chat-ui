@@ -34,6 +34,10 @@
     return base + normalized_path;
   }
 
+  function isMobileViewport() {
+    return window.innerWidth <= 1024;
+  }
+
   function getStoredToken() {
     var raw;
     try {
@@ -322,10 +326,22 @@
     }
   }
 
+  function updateSidebarVisibilityState(gadget, detail) {
+    var info = detail || {},
+      has_flag = Object.prototype.hasOwnProperty.call(info, "is_visible"),
+      visible = has_flag ? Boolean(info.is_visible) : true;
+
+    gadget.sidebar_visible = visible;
+    gadget.sidebar_is_mobile = Boolean(info.is_mobile);
+    gadget.sidebar_mobile_open = Boolean(info.mobile_open);
+  }
+
   rJS(window)
     .ready(function (gadget) {
+      var initial_mobile;
       gadget.active_session_id = null;
       gadget.sidebar_gadget = null;
+      gadget.header_gadget = null;
       gadget.chat_gadget = null;
       gadget.prompt_gadget = null;
       gadget.auth_gadget = null;
@@ -344,12 +360,45 @@
       gadget.new_session_map = {};
       gadget.current_view_mode = "chat";
       updateAuthState(gadget, "locked");
+
+      initial_mobile = isMobileViewport();
+      updateSidebarVisibilityState(gadget, {
+        is_visible: initial_mobile ? false : true,
+        is_mobile: initial_mobile,
+        mobile_open: false
+      });
+
+      gadget.app_main = window.document.querySelector('[data-role="app-main"]');
+      gadget.mobile_media_query =
+        window.matchMedia && window.matchMedia("(max-width: 1024px)");
+
+      if (gadget.app_main) {
+        gadget.mobile_main_listener = rJS.loopEventListener(
+          gadget.app_main,
+          "click",
+          true,
+          function (event) {
+            if (
+              gadget.sidebar_is_mobile &&
+              gadget.sidebar_mobile_open &&
+              gadget.sidebar_gadget &&
+              gadget.sidebar_gadget.toggleSidebar
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              gadget.sidebar_gadget.toggleSidebar();
+            }
+          },
+          false
+        );
+      }
     })
 
     .declareService(function () {
       var gadget = this,
         sidebar_gadget,
         chat_gadget,
+        header_gadget,
         prompt_gadget,
         auth_gadget;
 
@@ -379,6 +428,9 @@
         }
         if (gadget.prompt_gadget && gadget.prompt_gadget.setTheme) {
           gadget.prompt_gadget.setTheme(is_dark);
+        }
+        if (gadget.header_gadget && gadget.header_gadget.setTheme) {
+          gadget.header_gadget.setTheme(is_dark);
         }
       }
 
@@ -1003,6 +1055,32 @@
         .push(function (cg) {
           chat_gadget = cg;
           gadget.chat_gadget = cg;
+          return gadget.getDeclaredGadget("header");
+        })
+        .push(function (hg) {
+          var is_dark_mode = !!(
+            window.document &&
+            window.document.body &&
+            window.document.body.classList.contains("dark")
+          );
+          header_gadget = hg;
+          gadget.header_gadget = hg;
+          if (header_gadget.setToggleHandler) {
+            header_gadget.setToggleHandler(function () {
+              if (
+                gadget.sidebar_gadget &&
+                gadget.sidebar_gadget.toggleSidebar
+              ) {
+                gadget.sidebar_gadget.toggleSidebar();
+              }
+            });
+          }
+          if (header_gadget.setTitle) {
+            header_gadget.setTitle("Rapid.Space RAG");
+          }
+          if (header_gadget.setTheme) {
+            header_gadget.setTheme(is_dark_mode);
+          }
           return gadget.getDeclaredGadget("prompt");
         })
         .push(function (pg) {
@@ -1035,6 +1113,42 @@
 
           if (sidebar_gadget.setThemeChangeHandler) {
             sidebar_gadget.setThemeChangeHandler(handleThemeChange);
+          }
+
+          if (sidebar_gadget.setSidebarVisibilityHandler) {
+            sidebar_gadget.setSidebarVisibilityHandler(function (detail) {
+              updateSidebarVisibilityState(gadget, detail);
+            });
+          }
+
+          function handleMobileMediaChange() {
+            if (
+              sidebar_gadget &&
+              sidebar_gadget.refreshResponsiveState
+            ) {
+              sidebar_gadget.refreshResponsiveState();
+            }
+          }
+
+          if (gadget.mobile_media_query && !gadget.media_query_bound) {
+            gadget.media_query_bound = true;
+            if (gadget.mobile_media_query.addEventListener) {
+              gadget.mobile_media_query.addEventListener(
+                "change",
+                handleMobileMediaChange
+              );
+            } else if (gadget.mobile_media_query.addListener) {
+              gadget.mobile_media_query.addListener(handleMobileMediaChange);
+            }
+          }
+
+          if (
+            gadget.mobile_media_query &&
+            gadget.mobile_media_query.matches &&
+            sidebar_gadget &&
+            sidebar_gadget.refreshResponsiveState
+          ) {
+            sidebar_gadget.refreshResponsiveState();
           }
 
           if (sidebar_gadget.setLogoutHandler) {
