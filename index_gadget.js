@@ -540,23 +540,32 @@
         );
       }
 
-      function applySessionMessages(session_id, messages) {
-        var formatted = mapMessagesForChat(messages),
-          has_messages = formatted.length > 0;
+  function applySessionMessages(session_id, messages) {
+    var formatted = mapMessagesForChat(messages),
+      has_messages = formatted.length > 0,
+      should_preserve_chat =
+        gadget.active_session_id === session_id &&
+        (gadget.is_streaming || gadget.pending_user_message_id);
 
-        gadget.session_started_map[session_id] = has_messages;
+    gadget.session_started_map[session_id] = has_messages;
 
-        if (has_messages) {
-          if (chat_gadget && chat_gadget.setMessages) {
-            chat_gadget.setMessages(formatted);
-          }
-          setMainViewMode(gadget, "chat");
-        } else {
-          if (chat_gadget && chat_gadget.clearMessages) {
-            chat_gadget.clearMessages();
-          }
-          setMainViewMode(gadget, "landing");
-        }
+    if (has_messages) {
+      if (chat_gadget && chat_gadget.setMessages) {
+        chat_gadget.setMessages(formatted);
+      }
+      setMainViewMode(gadget, "chat");
+      return;
+    }
+
+    if (should_preserve_chat) {
+      setMainViewMode(gadget, "chat");
+      return;
+    } else {
+      if (chat_gadget && chat_gadget.clearMessages) {
+        chat_gadget.clearMessages();
+      }
+      setMainViewMode(gadget, "landing");
+    }
       }
 
       function loadSessionDetail(session_id) {
@@ -873,38 +882,81 @@
           });
       }
 
+      function ensureSessionBeforePrompt(text) {
+        var trimmed = typeof text === "string" ? text.replace(/\s+$/, "") : "";
+
+        if (!trimmed) {
+          return RSVP.reject(new Error("Please enter a prompt."));
+        }
+        if (gadget.active_session_id) {
+          return RSVP.resolve(gadget.active_session_id);
+        }
+
+        return apiFetchJSON(gadget, "/sessions", {
+          method: "POST",
+          body: window.JSON.stringify({ title: DEFAULT_SESSION_TITLE })
+        }).then(function (session) {
+          var list = gadget.session_list.slice(0);
+          list.unshift(session);
+          gadget.session_list = list;
+          gadget.active_session_id = session.id;
+          gadget.session_started_map[session.id] = false;
+          syncSidebarSessions();
+          if (gadget.sidebar_gadget && gadget.sidebar_gadget.setActiveSession) {
+            gadget.sidebar_gadget.setActiveSession(session.id);
+          } else {
+            handleSidebarActiveChange(session.id);
+          }
+          return session.id;
+        });
+      }
+
       function handlePromptSubmit(text) {
-        var session_id = gadget.active_session_id,
-          trimmed = typeof text === "string" ? text.replace(/\s+$/, "") : "",
+        var trimmed = typeof text === "string" ? text.replace(/\s+$/, "") : "",
           title,
+          session_id,
           user_msg_id;
 
-        if (!trimmed || !session_id || gadget.is_streaming) {
+        if (!trimmed || gadget.is_streaming) {
           return;
         }
 
-        if (!gadget.derived_title_map[session_id]) {
-          title = createShortTitleFromQuestion(trimmed);
-          gadget.derived_title_map[session_id] = true;
-          handleSessionRenameRequest(session_id, title);
-        }
+        gadget.pending_user_message_id = true;
 
-        if (chat_gadget && chat_gadget.handleUserSubmit) {
-          chat_gadget
-            .handleUserSubmit(trimmed, { scroll: false })
-            .then(function (id) {
-              user_msg_id = id;
-              gadget.session_started_map[session_id] = true;
-              setMainViewMode(gadget, "chat");
-              return chat_gadget.appendAssistantMessage("", { is_streaming: true });
-            })
-            .then(function (assistant_msg_id) {
-              return chat_gadget.scrollToMessage(user_msg_id)
-                .then(function () {
+        return ensureSessionBeforePrompt(trimmed)
+          .then(function (new_session_id) {
+            session_id = new_session_id;
+            gadget.session_started_map[session_id] = true;
+            if (!gadget.derived_title_map[session_id]) {
+              title = createShortTitleFromQuestion(trimmed);
+              gadget.derived_title_map[session_id] = true;
+              handleSessionRenameRequest(session_id, title);
+            }
+            return chat_gadget
+              .handleUserSubmit(trimmed, { scroll: false })
+              .then(function (id) {
+                user_msg_id = id;
+                gadget.pending_user_message_id = id;
+                setMainViewMode(gadget, "chat");
+                return chat_gadget.appendAssistantMessage("", { is_streaming: true });
+              })
+              .then(function (assistant_msg_id) {
+                return chat_gadget.scrollToMessage(user_msg_id).then(function () {
                   return streamChatResponse(session_id, trimmed, assistant_msg_id);
                 });
-            });
-        }
+              });
+          })
+          .then(
+            null,
+            function (error) {
+              if (window.console && window.console.error) {
+                window.console.error(error);
+              }
+            }
+          )
+          .then(function () {
+            gadget.pending_user_message_id = null;
+          });
       }
 
       function handleSessionCreateRequest() {
