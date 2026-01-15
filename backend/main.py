@@ -10,6 +10,7 @@ import httpx
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from sqlalchemy.exc import OperationalError
 
 from langchain_core.messages import (
     AIMessage,
@@ -51,6 +52,27 @@ def get_db():
     finally:
         db.close()
 
+def ensure_db_tables(db):
+    """
+    Helper to recreate the sqlite schema if it has not been created yet.
+    After OperationalError we must rollback the session before retrying.
+    """
+    try:
+        database.create_db_and_tables()
+    finally:
+        db.rollback()
+
+def with_db_retry(db, callable_obj):
+    """
+    Execute a DB callable, recreating the sqlite schema when the initial call
+    fails because the database/tables do not exist yet.
+    """
+    try:
+        return callable_obj()
+    except OperationalError:
+        ensure_db_tables(db)
+        return callable_obj()
+
 # Dependency to get RAGSystem instance
 def get_rag_system():
     rag_system_instance = CleanHybridRAGSystemLC(
@@ -70,15 +92,24 @@ def get_rag_system():
 # --- Authentication Endpoints ---
 @app.post("/register", response_model=schemas.UserResponse)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_username(db, username=user.username)
+    db_user = with_db_retry(
+        db, lambda: crud.get_user_by_username(db, username=user.username)
+    )
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
-    return crud.create_user(db=db, user=user)
+    return with_db_retry(db, lambda: crud.create_user(db=db, user=user))
 
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = crud.get_user_by_username(db, username=form_data.username)
-    if not user or not crud.verify_password(form_data.password, user.hashed_password):
+    user = with_db_retry(
+        db, lambda: crud.get_user_by_username(db, username=form_data.username)
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found. Please create a new account."
+        )
+    if not crud.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
