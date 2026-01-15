@@ -7,15 +7,32 @@
     TOKEN_STORAGE_KEY = "rag_ui_token",
     USERNAME_STORAGE_KEY = "rag_ui_username",
     DEFAULT_API_BASE_URL = (function () {
-      var host = (window.location && window.location.hostname) || "";
-      if (
-        host === "localhost" ||
-        host === "127.0.0.1" ||
-        host === "[::1]"
-      ) {
-        return "http://localhost:8000";
+      var loc = window.location || {},
+        protocol = loc.protocol || "http:",
+        host = loc.hostname || "",
+        port = loc.port || "",
+        origin =
+          loc.origin ||
+          protocol +
+            "//" +
+            (loc.host || (host + (port ? ":" + port : ""))),
+        local_hosts = ["localhost", "127.0.0.1", "[::1]", "0.0.0.0"],
+        is_local_host = local_hosts.indexOf(host) !== -1,
+        local_backend = protocol + "//localhost:8000";
+
+      if (is_local_host) {
+        if (host === "0.0.0.0") {
+          return protocol + "//127.0.0.1:8001";
+        }
+        if (port === "8000") {
+          return origin;
+        }
+        if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") {
+          return local_backend;
+        }
       }
-      return "/api";
+
+      return origin.replace(/\/$/, "") + "/api";
     }()),
     API_BASE_URL =
       window.APP_API_BASE_URL ||
