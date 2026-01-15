@@ -6,10 +6,21 @@
   var DEFAULT_SESSION_TITLE = "New chat",
     TOKEN_STORAGE_KEY = "rag_ui_token",
     USERNAME_STORAGE_KEY = "rag_ui_username",
+    DEFAULT_API_BASE_URL = (function () {
+      var host = (window.location && window.location.hostname) || "";
+      if (
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "[::1]"
+      ) {
+        return "http://localhost:8000";
+      }
+      return "/api";
+    }()),
     API_BASE_URL =
       window.APP_API_BASE_URL ||
       window.API_BASE_URL ||
-      "http://localhost:8000";
+      DEFAULT_API_BASE_URL;
 
   function normalizeBaseUrl(value) {
     var trimmed = value || "";
