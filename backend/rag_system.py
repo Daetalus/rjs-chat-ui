@@ -52,7 +52,7 @@ class RAGSystem:
     def _setup_models(self):
         """Setup models"""
         # Embedding model
-        self.embed_model = CustomEmbeddings(model=self.embed_model_name, url="http://localhost/api/embeddings")
+        self.embed_model = CustomEmbeddings(model=self.embed_model_name, url="http://localhost:11434/api/embeddings")
         
         # Main Ollama LLM
         os.environ["HTTPX_KEEP_ALIVE"] = "false"
@@ -277,7 +277,7 @@ def main():
     rag_system = RAGSystem(
         chroma_path="./company_knowledge_base",
         collection_name="company_docs",
-        base_url= "http://localhost",
+        base_url= "http://localhost:11434",
         embed_model_name = "nomic-embed-text",
         llm_name="hf.co/unsloth/Qwen3-30B-A3B-GGUF:Q4_K_XL",
         similarity_threshold=0.1,  # Lowered threshold to ensure results pass

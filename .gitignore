@@ -1,3 +1,9 @@
 # Locally generated Chroma vector database
 /backend/nexedi_doc_title_vec_langchain_gemma/*
 /backend/nexedi_doc_vec_langchain_gemma/*
+
+.env
+*.db
+__pycache__/
+*.pyc
+venv/

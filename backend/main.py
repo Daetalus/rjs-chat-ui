@@ -34,11 +34,9 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# LLM_BASE_URL = "http://localhost/v1"
-# EMBED_BASE_URL = "http://localhost/v1"
-LLM_BASE_URL = "http://localhost/v1"
-EMBED_BASE_URL = "http://localhost/v1"
-EMBED_MODEL = "bge-m3"
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "http://localhost:8080/v1")
+EMBED_BASE_URL = os.environ.get("EMBED_BASE_URL", "http://localhost:8081/v1")
+
 # The model name is not used in llama.cpp service
 # Just for keep the OpenAI API compatibility
 GENERAL_MODEL = "Qwen3-30B-A3B-Instruct-2507-UD-Q5_K_XL.gguf"

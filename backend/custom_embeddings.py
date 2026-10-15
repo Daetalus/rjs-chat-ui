@@ -44,7 +44,6 @@ class CustomEmbeddings(Embeddings):
 
 
 if __name__ == "__main__":
-    # custom_embeddings = CustomEmbeddings(url="http://localhost/embeddings")
-    custom_embeddings = CustomEmbeddings(url="http://localhost/embeddings")
+    custom_embeddings = CustomEmbeddings(url=os.environ.get("EMBED_URL", "http://localhost:8081/embeddings"))
     embeddings = custom_embeddings.embed_query("Hello World")
     print(embeddings)

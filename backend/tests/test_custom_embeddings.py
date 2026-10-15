@@ -6,7 +6,7 @@ import requests
 from custom_embeddings import CustomEmbeddings
 
 
-BASE_URL = "http://localhost/v1/embeddings"
+BASE_URL = os.environ.get("EMBED_URL", "http://localhost:8081/v1/embeddings")
 
 
 class DummyResponse:

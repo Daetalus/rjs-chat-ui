@@ -27,7 +27,7 @@ def main():
     )
     parser.add_argument(
         "--embedding-url",
-        default="http://localhost/api/embeddings",
+        default=os.environ.get("EMBED_URL", "http://localhost:11434/api/embeddings"),
         help="The URL for the embedding model API."
     )
     parser.add_argument(
