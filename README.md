@@ -48,8 +48,6 @@ export EMBED_BASE_URL=http://localhost:8081/v1
 export SECRET_KEY=change-me
 ```
 
-<!-- TODO: make sure main.py reads these from environment variables -->
-
 ### 2. Build the vector databases
 
 The Chroma databases are not committed (they are too large for GitHub). Build them from your HTML documentation:
